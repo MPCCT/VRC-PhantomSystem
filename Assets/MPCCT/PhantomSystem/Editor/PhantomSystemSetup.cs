@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 using VRC.Dynamics;
 using VRC.SDK3.Avatars.Components;
@@ -16,17 +17,20 @@ namespace MPCCT
     {
         private VRCAvatarDescriptor BaseAvatar;
         private VRCAvatarDescriptor PhantomAvatar;
-        private bool IsRemovePhantomAvatarMenu;
+        private bool IsRenameParameters;
+        private bool IsRemovePhantomMenu;
+        private bool IsRemovePhantomAvatarMA;
         private bool IsRemoveOriginalAnimator;
         private bool IsUseRotationConstraint;
         private bool IsRotationSolveInWorldSpace;
-        private bool IsRenameParameters;
         private const string MAPrefabPath = "Assets/MPCCT/PhantomSystem/Prefab/PhantomMA.prefab";
-        private const string MAPrefabPath_RebaseMenu = "Assets/MPCCT/PhantomSystem/Prefab/PhantomMA_RebaseMenu.prefab";
+        private const string MAPrefabPath_NoPhantomMenu = "Assets/MPCCT/PhantomSystem/Prefab/PhantomMA_NoPhantomMenu.prefab";
         private const string MenuPath = "Assets/MPCCT/PhantomSystem/Menu";
         private const string PhantomMenuPath = "Assets/MPCCT/PhantomSystem/Menu/PhantomSystemPhantomMenu.asset";
 
         private bool showAdvanced = false;
+
+        private HashSet<string> SavedMenuName = new HashSet<string>();
 
         [MenuItem("MPCCT/PhantomSystemSetup")]
         private static void Init()
@@ -39,7 +43,7 @@ namespace MPCCT
 
         private void OnGUI()
         {
-            EditorGUILayout.LabelField("PhantomSystem v0.1.2 Made By MPCCT");
+            EditorGUILayout.LabelField("PhantomSystem v0.1.3 Made By MPCCT");
             BaseAvatar = EditorGUILayout.ObjectField("基础模型", BaseAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
             PhantomAvatar = EditorGUILayout.ObjectField("分身模型", PhantomAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
             IsRenameParameters = EditorGUILayout.ToggleLeft("重命名分身模型的参数", IsRenameParameters);
@@ -50,13 +54,14 @@ namespace MPCCT
             if (showAdvanced)
             {
                 EditorGUI.indentLevel++;
-                IsRemovePhantomAvatarMenu = EditorGUILayout.ToggleLeft("去除分身模型菜单", IsRemovePhantomAvatarMenu);
+                IsRemovePhantomMenu = EditorGUILayout.ToggleLeft("去除分身模型菜单(PhantomMenu)", IsRemovePhantomMenu);
+                IsRemovePhantomAvatarMA = EditorGUILayout.ToggleLeft("去除分身模型MA组件", IsRemovePhantomAvatarMA);
                 IsRemoveOriginalAnimator = EditorGUILayout.ToggleLeft("去除分身模型原始FX", IsRemoveOriginalAnimator);
-                IsUseRotationConstraint = EditorGUILayout.ToggleLeft("使用Rotation Constraint（对于模型不适配可能有用）", IsUseRotationConstraint);
+                IsUseRotationConstraint = EditorGUILayout.ToggleLeft("使用Rotation Constraint（分身模型和基础模型骨骼不同时可能有用）", IsUseRotationConstraint);
                 if (IsUseRotationConstraint)
                 {
                     EditorGUI.indentLevel++;
-                    IsRotationSolveInWorldSpace = EditorGUILayout.ToggleLeft("使用世界空间的约束（对于模型不适配可能有用，会导致模型面朝方向不固定在世界）", IsRotationSolveInWorldSpace);
+                    IsRotationSolveInWorldSpace = EditorGUILayout.ToggleLeft("使用世界空间上的约束（对于模型不适配可能有用，会导致模型面朝方向不固定在世界）", IsRotationSolveInWorldSpace);
                     EditorGUI.indentLevel--;
                 }
                 EditorGUI.indentLevel--;
@@ -75,6 +80,8 @@ namespace MPCCT
                     EditorUtility.DisplayDialog("Error!", "出现错误，请查看Console", "OK");
                 }
 
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
                 // GC
                 System.GC.Collect();
             }
@@ -282,11 +289,13 @@ namespace MPCCT
             AssetDatabase.CreateAsset(PhantomFreezeOff, $"{animationFolderPath}/{BaseAvatar.name}/PhantomFreezeOff.anim");
             AssetDatabase.CreateAsset(PhantomFreeze, $"{animationFolderPath}/{BaseAvatar.name}/PhantomFreeze.anim");
 
-            // load existing animator controller
-            var controller = AssetDatabase.LoadAssetAtPath<UnityEditor.Animations.AnimatorController>($"{animationFolderPath}/PhantomSystem_FX_Reference.controller");
-            var NewController = UnityEditor.Animations.AnimatorController.Instantiate(controller);
+            // delete existing animator controller
+            AssetDatabase.DeleteAsset($"{animationFolderPath}/{BaseAvatar.name}/PhantomSystem_FX.controller");
+            // load reference animator controller
+            AssetDatabase.CopyAsset($"{animationFolderPath}/PhantomSystem_FX_Reference.controller", $"{animationFolderPath}/{BaseAvatar.name}/PhantomSystem_FX.controller");
+            var PhantomController = AssetDatabase.LoadAssetAtPath<AnimatorController>($"{animationFolderPath}/{BaseAvatar.name}/PhantomSystem_FX.controller");
             // change controller's animation clips
-            var MainStateMachine = NewController.layers[1].stateMachine;
+            var MainStateMachine = PhantomController.layers[1].stateMachine;
             var states = MainStateMachine.states;
             foreach (var state in states)
             {
@@ -307,10 +316,7 @@ namespace MPCCT
                     state.state.motion = PhantomFreeze;
                 }
             }
-            // delete existing animator controller
-            AssetDatabase.DeleteAsset($"{animationFolderPath}/{BaseAvatar.name}/PhantomSystem_FX.controller");
-            // save new animator controller
-            AssetDatabase.CreateAsset(NewController, $"{animationFolderPath}/{BaseAvatar.name}/PhantomSystem_FX.controller");
+            AssetDatabase.SaveAssetIfDirty(PhantomController);
 
             // Remove Phantom Avatar's existing components on root
             UnityEngine.Component[] PhantomAvatarOldComponents = PhantomAvatarRoot.GetComponents<UnityEngine.Component>();
@@ -324,13 +330,14 @@ namespace MPCCT
 
 
             // MA Adaptation
-            var MAInstaller = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMenuInstaller>(true);
             var MABoneProxy = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarBoneProxy>(true);
-            var MAMergeAnimator = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMergeAnimator>(true);
-            var MAParameter = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarParameters>(true);
-            var MAMeshSettings = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMeshSettings>(true);
             var MAMergeArmature = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMergeArmature>(true);
+            var MAMeshSettings = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMeshSettings>(true);
+
+            var MAInstaller = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMenuInstaller>(true);
             var MAMenuItems = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMenuItem>(true);
+            var MAParameter = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarParameters>(true);
+            var MAMergeAnimator = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMergeAnimator>(true);
 
             VRCExpressionsMenu PhantomMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(PhantomMenuPath);
 
@@ -379,29 +386,28 @@ namespace MPCCT
                 }
             }
 
-            if (IsRemovePhantomAvatarMenu || BaseAvatar.customExpressions == false)
+            if (IsRemovePhantomAvatarMA)
             {
                 // remove the Phantom Avatar's MA Menu installer if it exists
                 foreach (var installer in MAInstaller)
                 {
                     DestroyImmediate(installer);
                 }
-                // remove the Phantom Avatar's MA Parameters if it exists
-                foreach (var parameter in MAParameter)
-                {
-                    DestroyImmediate(parameter);
-                }
                 // remove the Phantom Avatar's MA Menu Items if it exists
                 foreach (var item in MAMenuItems)
                 {
                     DestroyImmediate(item);
                 }
-                // Add MA Prefab to PhantomSystem
-                GameObject MAPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(MAPrefabPath);
-                GameObject MAPrefabInstance = Instantiate(MAPrefab, PhantomSystem.transform);
-                MAPrefabInstance.name = "PhantomMA";
-                // redirect the Phantom Avatar Animator to the new controller
-                MAPrefabInstance.GetComponent<ModularAvatarMergeAnimator>().animator = NewController;
+                // remove the Phantom Avatar's MA Parameters if it exists
+                foreach (var parameter in MAParameter)
+                {
+                    DestroyImmediate(parameter);
+                }
+                //remove the Phantom Avatar's MA Merge Animator if it exists
+                foreach (var animator in MAMergeAnimator)
+                {
+                    DestroyImmediate(animator);
+                }
             }
             else
             {
@@ -429,19 +435,13 @@ namespace MPCCT
                     else
                     {
                         // Copy the menu to the PhantomSystem folder
-                        CopyExpressionMenuRecursively(installer.installTargetMenu, $"{MenuPath}/{BaseAvatar.name}");
-                        // Load the copied menu
-                        var CopiedMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>($"{MenuPath}/{BaseAvatar.name}/{installer.installTargetMenu.name}.asset");
-                        installer.installTargetMenu = CopiedMenu;
+                        installer.installTargetMenu = CopyExpressionMenuRecursively(installer.installTargetMenu, $"{MenuPath}/{BaseAvatar.name}"); 
                     }
 
                     if (installer.menuToAppend != null)
                     {
                         // Copy the menu to the PhantomSystem folder
-                        CopyExpressionMenuRecursively(installer.menuToAppend, $"{MenuPath}/{BaseAvatar.name}");
-                        // Load the copied menu
-                        var CopiedMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>($"{MenuPath}/{BaseAvatar.name}/{installer.menuToAppend.name}.asset");
-                        installer.menuToAppend = CopiedMenu;
+                        installer.menuToAppend = CopyExpressionMenuRecursively(installer.menuToAppend, $"{MenuPath}/{BaseAvatar.name}"); 
                     }
                 }
 
@@ -451,10 +451,7 @@ namespace MPCCT
                     if (item.MenuSource == SubmenuSource.MenuAsset)
                     {
                         // Copy the menu to the PhantomSystem folder
-                        CopyExpressionMenuRecursively(item.Control.subMenu, $"{MenuPath}/{BaseAvatar.name}");
-                        // Load the copied menu
-                        var CopiedMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>($"{MenuPath}/{BaseAvatar.name}/{item.Control.subMenu.name}.asset");
-                        item.Control.subMenu = CopiedMenu;
+                        item.Control.subMenu = CopyExpressionMenuRecursively(item.Control.subMenu, $"{MenuPath}/{BaseAvatar.name}");
                     }
                 }
 
@@ -483,14 +480,15 @@ namespace MPCCT
                         }
                     }
                 }
-
-                // Add MA Prefab to PhantomSystem
-                GameObject MAPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(MAPrefabPath_RebaseMenu);
-                GameObject MAPrefabInstance = Instantiate(MAPrefab, PhantomSystem.transform);
-                MAPrefabInstance.name = "PhantomMA";
-                // redirect the Phantom Avatar Animator to the new controller
-                MAPrefabInstance.GetComponent<ModularAvatarMergeAnimator>().animator = NewController;
             }
+
+            // Add MA Prefab to PhantomSystem
+            GameObject MAPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(IsRemovePhantomMenu ? MAPrefabPath_NoPhantomMenu : MAPrefabPath);
+            GameObject MAPrefabInstance = Instantiate(MAPrefab, PhantomSystem.transform);
+            MAPrefabInstance.name = "PhantomMA";
+            // redirect the Phantom Avatar Animator to the new controller
+            MAPrefabInstance.GetComponent<ModularAvatarMergeAnimator>().animator = PhantomController;
+
             if (!IsRemoveOriginalAnimator)
             {
                 // Merge original Phantom Avatar's animator
@@ -517,17 +515,14 @@ namespace MPCCT
                     PhantomAvatarMAParameters.parameters = GetParameterFromVRCParameter(PhantomAvatar.expressionParameters, IsRenameParameters);
                 }
 
-                if (!IsRemovePhantomAvatarMenu)
+                if (!IsRemovePhantomMenu)
                 {
                     // Set MA Menu Installer for PhantomAvatarMA
                     var PhantomAvatarMAMenuInstaller = PhantomAvatarMA.AddComponent<ModularAvatarMenuInstaller>();
                     if (PhantomAvatar.expressionsMenu != null)
                     {
                         // Copy the menu to the PhantomSystem folder
-                        CopyExpressionMenuRecursively(PhantomAvatar.expressionsMenu, $"{MenuPath}/{BaseAvatar.name}");
-                        // Load the copied menu
-                        var CopiedMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>($"{MenuPath}/{BaseAvatar.name}/{PhantomAvatar.expressionsMenu.name}.asset");
-                        PhantomAvatarMAMenuInstaller.menuToAppend = CopiedMenu;
+                        PhantomAvatarMAMenuInstaller.menuToAppend = CopyExpressionMenuRecursively(PhantomAvatar.expressionsMenu, $"{MenuPath}/{BaseAvatar.name}");
                         PhantomAvatarMAMenuInstaller.installTargetMenu = PhantomMenu;
                     }
                 }
@@ -551,6 +546,9 @@ namespace MPCCT
 
             foreach (var parameter in parameters.parameters)
             {
+                // skip VRC default parameters
+                if (VRCDefaultParameters.Contains(parameter.name)) continue;
+
                 ParameterConfig config = new ParameterConfig
                 {
                     nameOrPrefix = parameter.name,
@@ -558,11 +556,11 @@ namespace MPCCT
                     saved = parameter.saved,
                     localOnly = true
                 };
-                if (IsRenamed && !VRCDefaultParameters.Contains(parameter.name))
+
+                if (IsRenamed)
                 {
                     config.remapTo = "PhantomSystemRename_" + parameter.name;
                 }
-
                 if (parameter.valueType == VRCExpressionParameters.ValueType.Bool)
                 {
                     config.syncType = ParameterSyncType.Bool;
@@ -579,7 +577,6 @@ namespace MPCCT
                 {
                     config.syncType = ParameterSyncType.NotSynced;
                 }
-
                 if (parameter.networkSynced)
                 {
                     config.localOnly = false;
@@ -589,17 +586,21 @@ namespace MPCCT
             return result;
         }
 
-        private void CopyExpressionMenuRecursively(VRCExpressionsMenu sourceMenu, string path)
+        private VRCExpressionsMenu CopyExpressionMenuRecursively(VRCExpressionsMenu sourceMenu, string path)
         {
+
+            // Create unique menu name using GetInstanceID
+            string MenuRename = $"{sourceMenu.name}_{sourceMenu.GetInstanceID()}";
             // skip already copied menu
-            if (File.Exists($"{path}/{sourceMenu.name}.asset"))
+            if (SavedMenuName.Contains(MenuRename))
             {
-                return;
+                return AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>($"{path}/{MenuRename}.asset");
             }
+            SavedMenuName.Add(MenuRename);
+
             // copy menu
-            AssetDatabase.CreateAsset(UnityEngine.Object.Instantiate(sourceMenu), $"{path}/{sourceMenu.name}.asset");
-            // Load copied menu
-            var copiedMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>($"{path}/{sourceMenu.name}.asset");
+            AssetDatabase.CopyAsset(AssetDatabase.GetAssetPath(sourceMenu), $"{path}/{MenuRename}.asset");
+            var copiedMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>($"{path}/{MenuRename}.asset");
 
             // trverse sub-menus
             for (int i=0;i < sourceMenu.controls.Count; i++)
@@ -610,13 +611,12 @@ namespace MPCCT
                 // If the control is a submenu, copy it recursively
                 if (control.type == VRCExpressionsMenu.Control.ControlType.SubMenu && control.subMenu != null)
                 {
-                    CopyExpressionMenuRecursively(control.subMenu, path);
-                    // Load the copied sub-menu
-                    var copiedSubMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>($"{path}/{control.subMenu.name}.asset");
-                    copiedControl.subMenu = copiedSubMenu;
+                    copiedControl.subMenu = CopyExpressionMenuRecursively(control.subMenu, path);
                 }
             }
-            AssetDatabase.SaveAssets();
+
+            AssetDatabase.SaveAssetIfDirty(copiedMenu);
+            return copiedMenu;
         }
     }
 }
