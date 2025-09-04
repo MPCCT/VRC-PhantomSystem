@@ -43,7 +43,7 @@ namespace MPCCT
 
         private void OnGUI()
         {
-            EditorGUILayout.LabelField("PhantomSystem v0.1.3 Made By MPCCT");
+            EditorGUILayout.LabelField("PhantomSystem v0.1.4 Made By MPCCT");
             BaseAvatar = EditorGUILayout.ObjectField("基础模型", BaseAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
             PhantomAvatar = EditorGUILayout.ObjectField("分身模型", PhantomAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
             IsRenameParameters = EditorGUILayout.ToggleLeft("重命名分身模型的参数", IsRenameParameters);
@@ -81,7 +81,6 @@ namespace MPCCT
                 }
 
                 AssetDatabase.SaveAssets();
-                AssetDatabase.Refresh();
                 // GC
                 System.GC.Collect();
             }
@@ -316,7 +315,7 @@ namespace MPCCT
                     state.state.motion = PhantomFreeze;
                 }
             }
-            AssetDatabase.SaveAssetIfDirty(PhantomController);
+            EditorUtility.SetDirty(PhantomController);
 
             // Remove Phantom Avatar's existing components on root
             UnityEngine.Component[] PhantomAvatarOldComponents = PhantomAvatarRoot.GetComponents<UnityEngine.Component>();
@@ -588,9 +587,10 @@ namespace MPCCT
 
         private VRCExpressionsMenu CopyExpressionMenuRecursively(VRCExpressionsMenu sourceMenu, string path)
         {
-
             // Create unique menu name using GetInstanceID
-            string MenuRename = $"{sourceMenu.name}_{sourceMenu.GetInstanceID()}";
+            // use GUID
+            var guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(sourceMenu));
+            string MenuRename = $"{sourceMenu.name}_{guid.Substring(0, 8)}";
             // skip already copied menu
             if (SavedMenuName.Contains(MenuRename))
             {
@@ -603,18 +603,17 @@ namespace MPCCT
             var copiedMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>($"{path}/{MenuRename}.asset");
 
             // trverse sub-menus
+            var controls = copiedMenu.controls;
             for (int i=0;i < sourceMenu.controls.Count; i++)
             {
-                var control = sourceMenu.controls[i];
-                var copiedControl = copiedMenu.controls[i];
-                if (control == null) continue;
-                // If the control is a submenu, copy it recursively
-                if (control.type == VRCExpressionsMenu.Control.ControlType.SubMenu && control.subMenu != null)
+                var c = controls[i];
+                if (c != null && c.type == VRCExpressionsMenu.Control.ControlType.SubMenu && c.subMenu != null)
                 {
-                    copiedControl.subMenu = CopyExpressionMenuRecursively(control.subMenu, path);
+                    c.subMenu = CopyExpressionMenuRecursively(c.subMenu, path);
+                    controls[i] = c; // write back
                 }
             }
-
+            EditorUtility.SetDirty(copiedMenu);
             AssetDatabase.SaveAssetIfDirty(copiedMenu);
             return copiedMenu;
         }
