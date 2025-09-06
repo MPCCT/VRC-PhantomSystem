@@ -43,7 +43,7 @@ namespace MPCCT
 
         private void OnGUI()
         {
-            EditorGUILayout.LabelField("PhantomSystem v0.1.4 Made By MPCCT");
+            EditorGUILayout.LabelField("PhantomSystem v0.1.5-alpha Made By MPCCT");
             BaseAvatar = EditorGUILayout.ObjectField("基础模型", BaseAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
             PhantomAvatar = EditorGUILayout.ObjectField("分身模型", PhantomAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
             IsRenameParameters = EditorGUILayout.ToggleLeft("重命名分身模型的参数", IsRenameParameters);
@@ -434,23 +434,33 @@ namespace MPCCT
                     else
                     {
                         // Copy the menu to the PhantomSystem folder
-                        installer.installTargetMenu = CopyExpressionMenuRecursively(installer.installTargetMenu, $"{MenuPath}/{BaseAvatar.name}"); 
+                        installer.installTargetMenu = CopyExpressionMenuRecursively(installer.installTargetMenu, $"{MenuPath}/{BaseAvatar.name}");
                     }
 
                     if (installer.menuToAppend != null)
                     {
                         // Copy the menu to the PhantomSystem folder
-                        installer.menuToAppend = CopyExpressionMenuRecursively(installer.menuToAppend, $"{MenuPath}/{BaseAvatar.name}"); 
+                        installer.menuToAppend = CopyExpressionMenuRecursively(installer.menuToAppend, $"{MenuPath}/{BaseAvatar.name}");
                     }
                 }
 
                 // Rebase all MA Menu Items
                 foreach (var item in MAMenuItems)
                 {
-                    if (item.MenuSource == SubmenuSource.MenuAsset)
+                    if (item.Control.type == VRCExpressionsMenu.Control.ControlType.SubMenu && item.MenuSource == SubmenuSource.MenuAsset)
                     {
+                        Debug.Log($"Rebasing MA Menu Item: {item.transform.name}");
                         // Copy the menu to the PhantomSystem folder
                         item.Control.subMenu = CopyExpressionMenuRecursively(item.Control.subMenu, $"{MenuPath}/{BaseAvatar.name}");
+                    }
+                    // Rename parameters if MA Menu Item use custom parameters,
+                    // because using identical parameter names in MA Menu Item across the phantom avatar and the base avatar can cause unexpected behavior.
+                    // this may cause problem when using parameters in phantom avatar's FX, but no better solution for now.
+                    if (!string.IsNullOrEmpty(item.Control.parameter.name))
+                    {
+                        var p = item.Control.parameter;
+                        p.name = "PhantomSystemRename_" + p.name;
+                        item.Control.parameter = p;
                     }
                 }
 
@@ -604,7 +614,7 @@ namespace MPCCT
 
             // trverse sub-menus
             var controls = copiedMenu.controls;
-            for (int i=0;i < sourceMenu.controls.Count; i++)
+            for (int i = 0; i < sourceMenu.controls.Count; i++)
             {
                 var c = controls[i];
                 if (c != null && c.type == VRCExpressionsMenu.Control.ControlType.SubMenu && c.subMenu != null)
