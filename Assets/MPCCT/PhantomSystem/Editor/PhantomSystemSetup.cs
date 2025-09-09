@@ -18,6 +18,7 @@ namespace MPCCT
         private VRCAvatarDescriptor BaseAvatar;
         private VRCAvatarDescriptor PhantomAvatar;
         private bool IsRenameParameters;
+        private bool IsRemoveViewSystem;
         private bool IsRemovePhantomMenu;
         private bool IsRemovePhantomAvatarMA;
         private bool IsRemoveOriginalAnimator;
@@ -27,6 +28,9 @@ namespace MPCCT
         private const string MAPrefabPath_NoPhantomMenu = "Assets/MPCCT/PhantomSystem/Prefab/PhantomMA_NoPhantomMenu.prefab";
         private const string MenuPath = "Assets/MPCCT/PhantomSystem/Menu";
         private const string PhantomMenuPath = "Assets/MPCCT/PhantomSystem/Menu/PhantomSystemPhantomMenu.asset";
+        private const string ViewSystemPrefabPath = "Assets/MPCCT/PhantomSystem/ViewSystem/Prefab/PhantomView.prefab";
+        private const string ViewSystemPrefabPath_NoPhantomMenu = "Assets/MPCCT/PhantomSystem/ViewSystem/Prefab/PhantomView_NoPhantomMenu.prefab";
+
 
         private bool showAdvanced = false;
 
@@ -43,10 +47,11 @@ namespace MPCCT
 
         private void OnGUI()
         {
-            EditorGUILayout.LabelField("PhantomSystem v0.1.5-alpha Made By MPCCT");
+            EditorGUILayout.LabelField("PhantomSystem v0.1.6-alpha Made By MPCCT");
             BaseAvatar = EditorGUILayout.ObjectField("基础模型", BaseAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
             PhantomAvatar = EditorGUILayout.ObjectField("分身模型", PhantomAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
             IsRenameParameters = EditorGUILayout.ToggleLeft("重命名分身模型的参数", IsRenameParameters);
+            IsRemoveViewSystem = EditorGUILayout.ToggleLeft("去除分身模型的视角窗口", IsRemoveViewSystem);
 
             // Advanced Settings 
             showAdvanced = EditorGUILayout.Foldout(showAdvanced, "高级设置", true);
@@ -493,10 +498,29 @@ namespace MPCCT
 
             // Add MA Prefab to PhantomSystem
             GameObject MAPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(IsRemovePhantomMenu ? MAPrefabPath_NoPhantomMenu : MAPrefabPath);
-            GameObject MAPrefabInstance = Instantiate(MAPrefab, PhantomSystem.transform);
+            GameObject MAPrefabInstance = (GameObject)PrefabUtility.InstantiatePrefab(MAPrefab, PhantomSystem.transform);
             MAPrefabInstance.name = "PhantomMA";
             // redirect the Phantom Avatar Animator to the new controller
             MAPrefabInstance.GetComponent<ModularAvatarMergeAnimator>().animator = PhantomController;
+
+            // View System
+            if (!IsRemoveViewSystem)
+            {
+                // Add ViewSystem Prefab to PhantomSystem
+                GameObject ViewSystemPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(IsRemovePhantomMenu ? ViewSystemPrefabPath_NoPhantomMenu : ViewSystemPrefabPath);
+                GameObject ViewSystem = (GameObject)PrefabUtility.InstantiatePrefab(ViewSystemPrefab, PhantomSystem.transform);
+                ViewSystem.name = "ViewSystem";
+
+                // Set ViewPoint
+                GameObject BaseAvatarViewPoint = ViewSystem.transform.Find("BaseAvatarViewPoint").gameObject;
+                BaseAvatarViewPoint.transform.position = BaseAvatar.ViewPosition;
+                GameObject PhantomAvatarViewPoint = ViewSystem.transform.Find("PhantomAvatarViewPoint").gameObject;
+                PhantomAvatarViewPoint.transform.position = PhantomAvatar.ViewPosition;
+
+                // Set MA Bone Proxy for BaseAvatarViewPoint
+                ModularAvatarBoneProxy PhantomViewPointProxy = PhantomAvatarViewPoint.GetComponent<ModularAvatarBoneProxy>();
+                PhantomViewPointProxy.subPath = PhantomBonePaths[HumanBodyBones.Head];
+            }
 
             if (!IsRemoveOriginalAnimator)
             {
