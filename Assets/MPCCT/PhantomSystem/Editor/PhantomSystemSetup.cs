@@ -47,11 +47,11 @@ namespace MPCCT
 
         private void OnGUI()
         {
-            EditorGUILayout.LabelField("PhantomSystem v0.1.6-alpha Made By MPCCT");
+            EditorGUILayout.LabelField("PhantomSystem v0.1.7-alpha Made By MPCCT");
             BaseAvatar = EditorGUILayout.ObjectField("基础模型", BaseAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
             PhantomAvatar = EditorGUILayout.ObjectField("分身模型", PhantomAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
             IsRenameParameters = EditorGUILayout.ToggleLeft("重命名分身模型的参数", IsRenameParameters);
-            IsRemoveViewSystem = EditorGUILayout.ToggleLeft("去除分身模型的视角窗口", IsRemoveViewSystem);
+            IsRemoveViewSystem = EditorGUILayout.ToggleLeft("去除分身视角窗口", IsRemoveViewSystem);
 
             // Advanced Settings 
             showAdvanced = EditorGUILayout.Foldout(showAdvanced, "高级设置", true);
@@ -194,7 +194,7 @@ namespace MPCCT
             {
                 if (bone == HumanBodyBones.LastBone)
                 {
-                    continue; // Skip LastBone as they are handled separately
+                    continue; // Skip LastBone
                 }
                 Transform PhantomBone = PhantomAnimator.GetBoneTransform(bone);
                 Transform BaseBone = BaseAnimator.GetBoneTransform(bone);
@@ -274,7 +274,6 @@ namespace MPCCT
                 }
             }
 
-
             string animationFolderPath = "Assets/MPCCT/PhantomSystem/Animation";
             // delete existing Animation Clips And Controllers
             AssetDatabase.DeleteAsset($"{animationFolderPath}/{BaseAvatar.name}/PhantomOFF.anim");
@@ -322,17 +321,6 @@ namespace MPCCT
             }
             EditorUtility.SetDirty(PhantomController);
 
-            // Remove Phantom Avatar's existing components on root
-            UnityEngine.Component[] PhantomAvatarOldComponents = PhantomAvatarRoot.GetComponents<UnityEngine.Component>();
-            foreach (var component in PhantomAvatarOldComponents)
-            {
-                if (!(component is Transform))
-                {
-                    DestroyImmediate(component);
-                }
-            }
-
-
             // MA Adaptation
             var MABoneProxy = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarBoneProxy>(true);
             var MAMergeArmature = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMergeArmature>(true);
@@ -377,7 +365,7 @@ namespace MPCCT
                 // Same as MA merge armature
                 // only consider hip situation
                 var BaseHipPath = GetRelativePath(BaseAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform);
-                var PhantomHip = BaseAvatar.transform.Find(PhantomBonePaths[HumanBodyBones.Hips]).gameObject;
+                var PhantomHip = PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips).gameObject;
                 AvatarObjectReference tempRelativePathRoot = new AvatarObjectReference();
                 tempRelativePathRoot.Set(PhantomHip);
                 if (setting.ProbeAnchor.referencePath == BaseHipPath)
@@ -511,11 +499,17 @@ namespace MPCCT
                 GameObject ViewSystem = (GameObject)PrefabUtility.InstantiatePrefab(ViewSystemPrefab, PhantomSystem.transform);
                 ViewSystem.name = "ViewSystem";
 
+                // Set Armature MA Bone Proxy
+                ModularAvatarBoneProxy ArmatureMA = ViewSystem.transform.Find("ArmatureMA").gameObject.GetComponent<ModularAvatarBoneProxy>();
+                ArmatureMA.subPath = GetRelativePath(BaseArmature, BaseAvatar.transform);
+
                 // Set ViewPoint
                 GameObject BaseAvatarViewPoint = ViewSystem.transform.Find("BaseAvatarViewPoint").gameObject;
                 BaseAvatarViewPoint.transform.position = BaseAvatar.ViewPosition;
+                BaseAvatarViewPoint.transform.rotation = BaseAnimator.GetBoneTransform(HumanBodyBones.Head).rotation;
                 GameObject PhantomAvatarViewPoint = ViewSystem.transform.Find("PhantomAvatarViewPoint").gameObject;
                 PhantomAvatarViewPoint.transform.position = PhantomAvatar.ViewPosition;
+                PhantomAvatarViewPoint.transform.rotation = PhantomAnimator.GetBoneTransform(HumanBodyBones.Head).rotation;
 
                 // Set MA Bone Proxy for BaseAvatarViewPoint
                 ModularAvatarBoneProxy PhantomViewPointProxy = PhantomAvatarViewPoint.GetComponent<ModularAvatarBoneProxy>();
@@ -560,8 +554,18 @@ namespace MPCCT
                     }
                 }
             }
-        }
 
+            // Remove Phantom Avatar's existing components on root
+            UnityEngine.Component[] PhantomAvatarOldComponents = PhantomAvatarRoot.GetComponents<UnityEngine.Component>();
+            foreach (var component in PhantomAvatarOldComponents)
+            {
+                if (!(component is Transform || component is ModularAvatarMeshSettings))
+                {
+                    DestroyImmediate(component);
+                }
+            }
+
+        }
         private static string GetRelativePath(Transform target, Transform root)
         {
             if (target == root)
@@ -621,10 +625,10 @@ namespace MPCCT
 
         private VRCExpressionsMenu CopyExpressionMenuRecursively(VRCExpressionsMenu sourceMenu, string path)
         {
-            // Create unique menu name using GetInstanceID
+            // Create unique menu name
             // use GUID
             var guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(sourceMenu));
-            string MenuRename = $"{sourceMenu.name}_{guid.Substring(0, 8)}";
+            string MenuRename = $"{sourceMenu.name}_{guid[..8]}";
             // skip already copied menu
             if (SavedMenuName.Contains(MenuRename))
             {
