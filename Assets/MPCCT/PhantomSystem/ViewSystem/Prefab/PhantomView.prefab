@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 6498094652094252869}
   - component: {fileID: 3202979359316723289}
   m_Layer: 0
-  m_Name: AmatureMA
+  m_Name: ArmatureMA
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -47,7 +47,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   boneReference: 55
-  subPath: Armature
+  subPath: 
   attachmentMode: 2
 --- !u!114 &3202979359316723289
 MonoBehaviour:
@@ -473,7 +473,7 @@ Camera:
     height: 1
   near clip plane: 0.04
   far clip plane: 1000
-  field of view: 110
+  field of view: 60
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
@@ -563,8 +563,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7590848217734807088}
-  - component: {fileID: 6666531580302347528}
   - component: {fileID: 9147083631253900147}
+  - component: {fileID: 636443368117753711}
   - component: {fileID: 5252161504857973330}
   m_Layer: 0
   m_Name: BaseAvatarViewPoint
@@ -589,7 +589,19 @@ Transform:
   - {fileID: 1334535526399645608}
   m_Father: {fileID: 1959247102062244816}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &6666531580302347528
+--- !u!114 &9147083631253900147
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7370827785711916776}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33dac8cfeaeb4c399ddd90597f849f70, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &636443368117753711
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -604,18 +616,6 @@ MonoBehaviour:
   boneReference: 10
   subPath: 
   attachmentMode: 2
---- !u!114 &9147083631253900147
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7370827785711916776}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 33dac8cfeaeb4c399ddd90597f849f70, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &5252161504857973330
 MonoBehaviour:
   m_ObjectHideFlags: 0

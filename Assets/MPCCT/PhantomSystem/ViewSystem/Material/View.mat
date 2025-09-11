@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: View
-  m_Shader: {fileID: 10752, guid: 0000000000000000f000000000000000, type: 0}
+  m_Shader: {fileID: 4800000, guid: 7c03004fd2140874a83f3bad2a5503c2, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -24,6 +24,10 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _AlphaMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _AlphaTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -71,6 +75,10 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _DepthTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _DetailAlbedoMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -80,6 +88,10 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailNormalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -219,6 +231,10 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _PatternTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _Ramp:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -267,8 +283,13 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _TilesTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - PixelSnap: 0
     - _AAStrength: 1
     - _AlphaBoostFA: 10
     - _AlphaMaskMode: 0
@@ -322,6 +343,8 @@ Material:
     - _Bump2ndMap_UVMode: 0
     - _Bump2ndScale: 1
     - _BumpScale: 1
+    - _CameraFar: 200
+    - _CameraNear: 0.3
     - _ColorMask: 15
     - _Cull: 2
     - _Cutoff: 0.5
@@ -329,6 +352,7 @@ Material:
     - _DissolveNoiseStrength: 0.1
     - _DistanceFadeMode: 0
     - _DistanceFadeRimFresnelPower: 5
+    - _Distortion: 0.8
     - _DitherMaxValue: 255
     - _DstBlend: 0
     - _DstBlendAlpha: 10
@@ -351,6 +375,7 @@ Material:
     - _EmissionMap_UVMode: 0
     - _EmissionParallaxDepth: 0
     - _EmissionUseGrad: 0
+    - _EnableExternalAlpha: 0
     - _EnvRimBlur: 0.35
     - _EnvRimBorder: 3
     - _FlipNormal: 0
@@ -474,6 +499,9 @@ Material:
     - _OutlineColorMask: 15
     - _OutlineCull: 1
     - _OutlineDeleteMesh: 0
+    - _OutlineDensity: 1
+    - _OutlineDepthBias: 1
+    - _OutlineDepthMultiplier: 5
     - _OutlineDisableInVR: 0
     - _OutlineDstBlend: 10
     - _OutlineDstBlendAlpha: 10
@@ -498,6 +526,7 @@ Material:
     - _OutlineStencilRef: 0
     - _OutlineStencilWriteMask: 255
     - _OutlineStencilZFail: 0
+    - _OutlineThickness: 1
     - _OutlineVectorScale: 1
     - _OutlineVectorUVMode: 0
     - _OutlineVertexR2Width: 0
@@ -537,6 +566,8 @@ Material:
     - _PreZClip: 1
     - _PreZTest: 4
     - _PreZWrite: 1
+    - _ProgressEnd: 1.5
+    - _ProgressStart: -0.5
     - _Reflectance: 0.04
     - _ReflectionApplyTransparency: 1
     - _ReflectionBlendMode: 1
@@ -599,18 +630,24 @@ Material:
     - _SrcBlendAlpha: 1
     - _SrcBlendAlphaFA: 0
     - _SrcBlendFA: 1
+    - _Stencil: 0
     - _StencilComp: 8
     - _StencilFail: 0
+    - _StencilOp: 0
     - _StencilPass: 0
     - _StencilReadMask: 255
     - _StencilRef: 0
     - _StencilWriteMask: 255
     - _StencilZFail: 0
+    - _StereoEnabled: 0
+    - _Strength: 0.2
     - _SubpassCutoff: 0.5
     - _TessEdge: 10
     - _TessFactorMax: 3
     - _TessShrink: 0
     - _TessStrength: 0.5
+    - _TessellationUniform: 32
+    - _TileSmoothness: 0.3
     - _TransparentMode: 0
     - _UDIMDiscardCompile: 0
     - _UDIMDiscardMode: 0
@@ -653,6 +690,7 @@ Material:
     - _UseRim: 0
     - _UseRimShade: 0
     - _UseShadow: 0
+    - _UseUIAlphaClip: 0
     - _VertexLightStrength: 0
     - _ZClip: 1
     - _ZTest: 4
@@ -674,6 +712,7 @@ Material:
     - _AudioLinkVertexStrength: {r: 0, g: 0, b: 0, a: 1}
     - _AudioLinkVertexUVParams: {r: 0.25, g: 0, b: 0, a: 0.125}
     - _BackfaceColor: {r: 0, g: 0, b: 0, a: 0}
+    - _BackgroundTint: {r: 1, g: 1, b: 1, a: 1}
     - _BacklightColor: {r: 0.85, g: 0.8, b: 0.7, a: 1}
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
@@ -694,6 +733,7 @@ Material:
     - _EmissionBlink: {r: 0, g: 0, b: 3.141593, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionMap_ScrollRotate: {r: 0, g: 0, b: 0, a: 0}
+    - _Flip: {r: 1, g: 1, b: 1, a: 1}
     - _GlitterAtras: {r: 1, g: 1, b: 0, a: 0}
     - _GlitterColor: {r: 1, g: 1, b: 1, a: 1}
     - _GlitterParams1: {r: 256, g: 256, b: 0.16, a: 50}
@@ -725,9 +765,12 @@ Material:
     - _OutlineLitColor: {r: 1, g: 0.19999996, b: 0, a: 0}
     - _OutlineTexHSVG: {r: 0, g: 1, b: 1, a: 1}
     - _OutlineTex_ScrollRotate: {r: 0, g: 0, b: 0, a: 0}
+    - _PatternColor: {r: 1, g: 1, b: 1, a: 0}
+    - _PatternSize: {r: 1, g: 1, b: 0, a: 0}
     - _PreColor: {r: 1, g: 1, b: 1, a: 1}
     - _ReflectionColor: {r: 1, g: 1, b: 1, a: 1}
     - _ReflectionCubeColor: {r: 0, g: 0, b: 0, a: 1}
+    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
     - _RimColor: {r: 0.65999997, g: 0.5, b: 0.47999996, a: 1}
     - _RimIndirColor: {r: 1, g: 1, b: 1, a: 1}
     - _RimShadeColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
@@ -737,6 +780,8 @@ Material:
     - _ShadowAOShift2: {r: 1, g: 0, b: 1, a: 0}
     - _ShadowBorderColor: {r: 1, g: 0.09999997, b: 0, a: 1}
     - _ShadowColor: {r: 0.82, g: 0.76, b: 0.85, a: 1}
+    - _ShapeFillColor: {r: 1, g: 1, b: 1, a: 0.25}
+    - _ShapeOutlineColor: {r: 1, g: 1, b: 1, a: 1}
     - _e2ga0: {r: 1, g: 0, b: 0, a: 0}
     - _e2ga1: {r: 1, g: 0, b: 0, a: 1}
     - _e2ga2: {r: 1, g: 0, b: 0, a: 0}
