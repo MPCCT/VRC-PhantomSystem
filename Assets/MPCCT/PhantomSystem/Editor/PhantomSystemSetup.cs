@@ -10,6 +10,7 @@ using VRC.Dynamics;
 using VRC.SDK3.Avatars.Components;
 using VRC.SDK3.Avatars.ScriptableObjects;
 using VRC.SDK3.Dynamics.Constraint.Components;
+using VRC.SDK3.Dynamics.PhysBone.Components;
 
 namespace MPCCT
 {
@@ -24,6 +25,7 @@ namespace MPCCT
         private bool IsRemoveOriginalAnimator;
         private bool IsUseRotationConstraint;
         private bool IsRotationSolveInWorldSpace;
+        private bool IsChangePBImmobileType;
         private const string MAPrefabPath = "Assets/MPCCT/PhantomSystem/Prefab/PhantomMA.prefab";
         private const string MAPrefabPath_NoPhantomMenu = "Assets/MPCCT/PhantomSystem/Prefab/PhantomMA_NoPhantomMenu.prefab";
         private const string MenuPath = "Assets/MPCCT/PhantomSystem/Menu";
@@ -47,7 +49,7 @@ namespace MPCCT
 
         private void OnGUI()
         {
-            EditorGUILayout.LabelField("PhantomSystem v0.1.7-alpha Made By MPCCT");
+            EditorGUILayout.LabelField("PhantomSystem v0.1.8-alpha Made By MPCCT");
             BaseAvatar = EditorGUILayout.ObjectField("基础模型", BaseAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
             PhantomAvatar = EditorGUILayout.ObjectField("分身模型", PhantomAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
             IsRenameParameters = EditorGUILayout.ToggleLeft("重命名分身模型的参数", IsRenameParameters);
@@ -62,6 +64,7 @@ namespace MPCCT
                 IsRemovePhantomMenu = EditorGUILayout.ToggleLeft("去除分身模型菜单(PhantomMenu)", IsRemovePhantomMenu);
                 IsRemovePhantomAvatarMA = EditorGUILayout.ToggleLeft("去除分身模型MA组件", IsRemovePhantomAvatarMA);
                 IsRemoveOriginalAnimator = EditorGUILayout.ToggleLeft("去除分身模型原始FX", IsRemoveOriginalAnimator);
+                IsChangePBImmobileType = EditorGUILayout.ToggleLeft("更改分身模型动骨ImmobileType（可能会使分身上部分动骨异常）", IsChangePBImmobileType);
                 IsUseRotationConstraint = EditorGUILayout.ToggleLeft("使用Rotation Constraint（分身模型和基础模型骨骼不同时可能有用）", IsUseRotationConstraint);
                 if (IsUseRotationConstraint)
                 {
@@ -131,15 +134,15 @@ namespace MPCCT
                 throw new InvalidOperationException("Base Avatar must have a humanoid Animator component.");
             }
 
-            // Amature Constraint
+            // Armature Constraint
             Transform PhantomArmature = PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips).parent;
             Transform BaseArmature = BaseAnimator.GetBoneTransform(HumanBodyBones.Hips).parent;
-            //Change the Phantom Avatar Armature's name
+            // Change the Phantom Avatar Armature's name
             PhantomArmature.name = "Armature_phantom";
-            var AmatureConstraint = PhantomArmature.gameObject.AddComponent<VRCParentConstraint>();
-            AmatureConstraint.Locked = true;
-            AmatureConstraint.IsActive = false;
-            AmatureConstraint.Sources = new VRCConstraintSourceKeyableList
+            var ArmatureConstraint = PhantomArmature.gameObject.AddComponent<VRCParentConstraint>();
+            ArmatureConstraint.Locked = true;
+            ArmatureConstraint.IsActive = false;
+            ArmatureConstraint.Sources = new VRCConstraintSourceKeyableList
             {
                 new VRCConstraintSource
                 {
@@ -147,8 +150,8 @@ namespace MPCCT
                     Weight = 1f
                 }
             };
-            AmatureConstraint.enabled = true;
-            AmatureConstraint.FreezeToWorld = true;
+            ArmatureConstraint.enabled = true;
+            ArmatureConstraint.FreezeToWorld = true;
 
             // Set the name of the Phantom Avatar
             PhantomAvatarRoot.name = "PhantomAvatar";
@@ -224,14 +227,14 @@ namespace MPCCT
 
                             // Add keyframes to the Animation Clips
 
-                            // PhantomOFF: constraint unfreeze world
-                            PhantomOFF.SetCurve(PhantomBonePaths[bone], typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
-                            // PhantomPrepare: constraint unfreeze world
-                            PhantomPrepare.SetCurve(PhantomBonePaths[bone], typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
-                            // PhantomFreezeOff: constraint unfreeze world
-                            PhantomFreezeOff.SetCurve(PhantomBonePaths[bone], typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
-                            // PhantomFreeze: constraint freeze world
-                            PhantomFreeze.SetCurve(PhantomBonePaths[bone], typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
+                            // PhantomOFF: constraint enable
+                            PhantomOFF.SetCurve(PhantomBonePaths[bone], typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+                            // PhantomPrepare: constraint enable
+                            PhantomPrepare.SetCurve(PhantomBonePaths[bone], typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+                            // PhantomFreezeOff: constraint enable
+                            PhantomFreezeOff.SetCurve(PhantomBonePaths[bone], typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+                            // PhantomFreeze: constraint disable
+                            PhantomFreeze.SetCurve(PhantomBonePaths[bone], typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
                         }
                         else
                         {
@@ -261,14 +264,14 @@ namespace MPCCT
 
                             // Add keyframes to the Animation Clips
 
-                            // PhantomOFF: constraint unfreeze world
-                            PhantomOFF.SetCurve(PhantomBonePaths[bone], typeof(VRCRotationConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
-                            // PhantomPrepare: constraint unfreeze world
-                            PhantomPrepare.SetCurve(PhantomBonePaths[bone], typeof(VRCRotationConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
-                            // PhantomFreezeOff: constraint unfreeze world
-                            PhantomFreezeOff.SetCurve(PhantomBonePaths[bone], typeof(VRCRotationConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
-                            // PhantomFreeze: constraint freeze world
-                            PhantomFreeze.SetCurve(PhantomBonePaths[bone], typeof(VRCRotationConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
+                            // PhantomOFF: constraint enable
+                            PhantomOFF.SetCurve(PhantomBonePaths[bone], typeof(VRCRotationConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+                            // PhantomPrepare: constraint enable
+                            PhantomPrepare.SetCurve(PhantomBonePaths[bone], typeof(VRCRotationConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+                            // PhantomFreezeOff: constraint enable
+                            PhantomFreezeOff.SetCurve(PhantomBonePaths[bone], typeof(VRCRotationConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+                            // PhantomFreeze: constraint disable
+                            PhantomFreeze.SetCurve(PhantomBonePaths[bone], typeof(VRCRotationConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
                         }
                     }
                 }
@@ -442,7 +445,6 @@ namespace MPCCT
                 {
                     if (item.Control.type == VRCExpressionsMenu.Control.ControlType.SubMenu && item.MenuSource == SubmenuSource.MenuAsset)
                     {
-                        Debug.Log($"Rebasing MA Menu Item: {item.transform.name}");
                         // Copy the menu to the PhantomSystem folder
                         item.Control.subMenu = CopyExpressionMenuRecursively(item.Control.subMenu, $"{MenuPath}/{BaseAvatar.name}");
                     }
@@ -552,6 +554,15 @@ namespace MPCCT
                         PhantomAvatarMAMenuInstaller.menuToAppend = CopyExpressionMenuRecursively(PhantomAvatar.expressionsMenu, $"{MenuPath}/{BaseAvatar.name}");
                         PhantomAvatarMAMenuInstaller.installTargetMenu = PhantomMenu;
                     }
+                }
+            }
+
+            var PhantomPhysBones = PhantomAvatarRoot.GetComponentsInChildren<VRCPhysBone>(true);
+            if (IsChangePBImmobileType)
+            {
+                foreach (var PB in PhantomPhysBones)
+                {
+                    PB.immobileType = VRCPhysBoneBase.ImmobileType.AllMotion;
                 }
             }
 
