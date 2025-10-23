@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -28,15 +29,77 @@ namespace MPCCT
         private bool IsChangePBImmobileType;
         private const string MAPrefabPath = "Assets/MPCCT/PhantomSystem/Prefab/PhantomMA.prefab";
         private const string MAPrefabPath_NoPhantomMenu = "Assets/MPCCT/PhantomSystem/Prefab/PhantomMA_NoPhantomMenu.prefab";
-        private const string MenuPath = "Assets/MPCCT/PhantomSystem/Menu";
+        private const string ReferenceAnimationPath = "Assets/MPCCT/PhantomSystem/Animation/PhantomSystem_FX_Reference.controller";
         private const string PhantomMenuPath = "Assets/MPCCT/PhantomSystem/Menu/PhantomSystemPhantomMenu.asset";
         private const string ViewSystemPrefabPath = "Assets/MPCCT/PhantomSystem/ViewSystem/Prefab/PhantomView.prefab";
         private const string ViewSystemPrefabPath_NoPhantomMenu = "Assets/MPCCT/PhantomSystem/ViewSystem/Prefab/PhantomView_NoPhantomMenu.prefab";
+        private const string GrabPrefabPath = "Assets/MPCCT/PhantomSystem/Prefab/GrabRoot.prefab";
 
+        private const string GeneratedAnimationFolder = "Assets/MPCCT/PhantomSystem/~Generated/Animation";
+        private const string GeneratedMenuFolder = "Assets/MPCCT/PhantomSystem/~Generated/Menu";
 
         private bool showAdvanced = false;
 
         private HashSet<string> SavedMenuName = new HashSet<string>();
+
+        // --- Localization ---
+        private enum Locale { English = 0, Chinese = 1, Japanese = 2 }
+        private Locale currentLocale = Locale.English;
+
+        private const string LocalMainMenuPath_zh = "Assets/MPCCT/PhantomSystem/Menu/Menu_zh/PhantomSystemMain_zh.asset";
+        private const string LocalMainMenuPath_jp = "Assets/MPCCT/PhantomSystem/Menu/Menu_jp/PhantomSystemMain_jp.asset";
+        private const string LocalSubMenuPath_zh = "Assets/MPCCT/PhantomSystem/Menu/Menu_zh/PhantomSystemSub_zh.asset";
+        private const string LocalSubMenuPath_jp = "Assets/MPCCT/PhantomSystem/Menu/Menu_jp/PhantomSystemSub_jp.asset";
+
+        private const string LocalMainMenu_NoPhantomMenuPath_zh = "Assets/MPCCT/PhantomSystem/Menu/Menu_zh/PhantomSystemMain_NoPhantomMenu_zh.asset";
+        private const string LocalMainMenu_NoPhantomMenuPath_jp = "Assets/MPCCT/PhantomSystem/Menu/Menu_jp/PhantomSystemMain_NoPhantomMenu_jp.asset";
+        private const string LocalSubMenu_NoPhantomMenuPath_zh = "Assets/MPCCT/PhantomSystem/Menu/Menu_zh/PhantomSystemSub_NoPhantomMenu_zh.asset";
+        private const string LocalSubMenu_NoPhantomMenuPath_jp = "Assets/MPCCT/PhantomSystem/Menu/Menu_jp/PhantomSystemSub_NoPhantomMenu_jp.asset";
+
+        private const string LocalViewSysMenuPath_zh = "Assets/MPCCT/PhantomSystem/ViewSystem/Animation/Menu/Menu_zh/ViewMain_zh.asset";
+        private const string LocalViewSysMenuPath_jp = "Assets/MPCCT/PhantomSystem/ViewSystem/Animation/Menu/Menu_jp/ViewMain_jp.asset";
+
+        private static readonly Dictionary<string, (string en, string zh, string jp)> s_texts = new Dictionary<string, (string, string, string)>
+        {
+            ["LanguageLabel"] = ("Language", "语言", "言語"),
+            ["BaseAvatar"] = ("Base Avatar", "基础模型", "ベースアバター"),
+            ["PhantomAvatar"] = ("Phantom Avatar", "分身模型", "ファントムアバター"),
+            ["RenameParameters"] = ("Rename phantom avatar parameters", "重命名分身模型的参数", "ファントムのパラメータをリネームする"),
+            ["RemoveViewSystem"] = ("Remove phantom view window", "去除分身视角窗口", "ファントムの視点ウィンドウを削除"),
+            ["AdvancedSettings"] = ("Advanced Settings", "高级设置", "詳細設定"),
+            ["RemovePhantomMenu"] = ("Remove phantom avatar menu", "去除分身模型菜单", "ファントムメニューを削除"),
+            ["RemovePhantomAvatarMA"] = ("Remove Modular Avatar components from phantom", "去除分身模型MA组件", "ファントムの MA コンポーネントを削除"),
+            ["RemoveOriginalAnimator"] = ("Remove Phantom Avatar's original FX", "去除分身模型原始FX", "ファントムの元のアニメーターを削除"),
+            ["ChangePBImmobileType"] = ("Change PhysBone ImmobileType (may break some physbones)", "更改分身模型动骨ImmobileType（可能会使分身上部分动骨异常）", "PhysBoneのImmobileTypeを変更（骨が崩れる場合あり）"),
+            ["UseRotationConstraint"] = ("Use Rotation Constraint (useful when bone hierarchies differ)", "使用Rotation Constraint（分身模型和基础模型骨骼不同时可能有用）", "Rotation Constraintを使用（ボーン構成が異なる場合に有効）"),
+            ["RotationSolveInWorldSpace"] = ("Solve constraint in world space (may affect facing direction)", "使用世界空间上的约束（对于模型不适配可能有用，会导致模型面朝方向不固定在世界）", "ワールド空間で解く（向きが固定されない場合あり）"),
+            ["StartButton"] = ("Setup!", "开始配置！", "セットアップを開始"),
+            ["SuccessTitle"] = ("Success", "成功", "成功"),
+            ["SuccessMessage"] = ("Setup completed!", "配置完成！", "設定が完了しました！"),
+            ["ErrorTitle"] = ("Error!", "错误!", "エラー!"),
+            ["ErrorMessage"] = ("An error occurred. See Console.", "出现错误，请查看Console", "エラーが発生しました。コンソールを確認してください。"),
+            ["OK"] = ("OK", "确定", "OK")
+        };
+
+        private string T(string key)
+        {
+            if (!s_texts.TryGetValue(key, out var tuple)) return key;
+            switch (currentLocale)
+            {
+                case Locale.Chinese:
+                    return tuple.zh;
+                case Locale.Japanese:
+                    return tuple.jp;
+                default:
+                    return tuple.en;
+            }
+        }
+
+        private void OnEnable()
+        {
+            // Load saved locale
+            currentLocale = (Locale)EditorPrefs.GetInt("MPCCT_PhantomSystem_Locale", (int)Locale.English);
+        }
 
         [MenuItem("MPCCT/PhantomSystemSetup")]
         private static void Init()
@@ -49,43 +112,55 @@ namespace MPCCT
 
         private void OnGUI()
         {
-            EditorGUILayout.LabelField("PhantomSystem v0.1.8-alpha Made By MPCCT");
-            BaseAvatar = EditorGUILayout.ObjectField("基础模型", BaseAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
-            PhantomAvatar = EditorGUILayout.ObjectField("分身模型", PhantomAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
-            IsRenameParameters = EditorGUILayout.ToggleLeft("重命名分身模型的参数", IsRenameParameters);
-            IsRemoveViewSystem = EditorGUILayout.ToggleLeft("去除分身视角窗口", IsRemoveViewSystem);
+            // Title
+            EditorGUILayout.LabelField("PhantomSystem v0.2.0-alpha Made By MPCCT");
+
+            // Language selection
+            string[] localeOptions = new[] { "English", "中文", "日本語" };
+            int newLocale = EditorGUILayout.Popup(T("LanguageLabel"), (int)currentLocale, localeOptions);
+            if (newLocale != (int)currentLocale)
+            {
+                currentLocale = (Locale)newLocale;
+                EditorPrefs.SetInt("MPCCT_PhantomSystem_Locale", newLocale);
+            }
+
+            // Main fields
+            BaseAvatar = EditorGUILayout.ObjectField(T("BaseAvatar"), BaseAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
+            PhantomAvatar = EditorGUILayout.ObjectField(T("PhantomAvatar"), PhantomAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
+            IsRenameParameters = EditorGUILayout.ToggleLeft(T("RenameParameters"), IsRenameParameters);
+            IsRemoveViewSystem = EditorGUILayout.ToggleLeft(T("RemoveViewSystem"), IsRemoveViewSystem);
 
             // Advanced Settings 
-            showAdvanced = EditorGUILayout.Foldout(showAdvanced, "高级设置", true);
+            showAdvanced = EditorGUILayout.Foldout(showAdvanced, T("AdvancedSettings"), true);
 
             if (showAdvanced)
             {
                 EditorGUI.indentLevel++;
-                IsRemovePhantomMenu = EditorGUILayout.ToggleLeft("去除分身模型菜单(PhantomMenu)", IsRemovePhantomMenu);
-                IsRemovePhantomAvatarMA = EditorGUILayout.ToggleLeft("去除分身模型MA组件", IsRemovePhantomAvatarMA);
-                IsRemoveOriginalAnimator = EditorGUILayout.ToggleLeft("去除分身模型原始FX", IsRemoveOriginalAnimator);
-                IsChangePBImmobileType = EditorGUILayout.ToggleLeft("更改分身模型动骨ImmobileType（可能会使分身上部分动骨异常）", IsChangePBImmobileType);
-                IsUseRotationConstraint = EditorGUILayout.ToggleLeft("使用Rotation Constraint（分身模型和基础模型骨骼不同时可能有用）", IsUseRotationConstraint);
+                IsRemovePhantomMenu = EditorGUILayout.ToggleLeft(T("RemovePhantomMenu"), IsRemovePhantomMenu);
+                IsRemovePhantomAvatarMA = EditorGUILayout.ToggleLeft(T("RemovePhantomAvatarMA"), IsRemovePhantomAvatarMA);
+                IsRemoveOriginalAnimator = EditorGUILayout.ToggleLeft(T("RemoveOriginalAnimator"), IsRemoveOriginalAnimator);
+                IsChangePBImmobileType = EditorGUILayout.ToggleLeft(T("ChangePBImmobileType"), IsChangePBImmobileType);
+                IsUseRotationConstraint = EditorGUILayout.ToggleLeft(T("UseRotationConstraint"), IsUseRotationConstraint);
                 if (IsUseRotationConstraint)
                 {
                     EditorGUI.indentLevel++;
-                    IsRotationSolveInWorldSpace = EditorGUILayout.ToggleLeft("使用世界空间上的约束（对于模型不适配可能有用，会导致模型面朝方向不固定在世界）", IsRotationSolveInWorldSpace);
+                    IsRotationSolveInWorldSpace = EditorGUILayout.ToggleLeft(T("RotationSolveInWorldSpace"), IsRotationSolveInWorldSpace);
                     EditorGUI.indentLevel--;
                 }
                 EditorGUI.indentLevel--;
             }
 
-            if (GUILayout.Button("开始配置！"))
+            if (GUILayout.Button(T("StartButton")))
             {
                 try
                 {
                     Setup();
-                    EditorUtility.DisplayDialog("Success", "配置完成！", "OK");
+                    EditorUtility.DisplayDialog(T("SuccessTitle"), T("SuccessMessage"), T("OK"));
                 }
                 catch (Exception e)
                 {
                     Debug.LogException(e);
-                    EditorUtility.DisplayDialog("Error!", "出现错误，请查看Console", "OK");
+                    EditorUtility.DisplayDialog(T("ErrorTitle"), T("ErrorMessage"), T("OK"));
                 }
 
                 AssetDatabase.SaveAssets();
@@ -277,29 +352,28 @@ namespace MPCCT
                 }
             }
 
-            string animationFolderPath = "Assets/MPCCT/PhantomSystem/Animation";
             // delete existing Animation Clips And Controllers
-            AssetDatabase.DeleteAsset($"{animationFolderPath}/{BaseAvatar.name}/PhantomOFF.anim");
-            AssetDatabase.DeleteAsset($"{animationFolderPath}/{BaseAvatar.name}/PhantomPrepare.anim");
-            AssetDatabase.DeleteAsset($"{animationFolderPath}/{BaseAvatar.name}/PhantomFreezeOff.anim");
-            AssetDatabase.DeleteAsset($"{animationFolderPath}/{BaseAvatar.name}/PhantomFreeze.anim");
-            AssetDatabase.DeleteAsset($"{animationFolderPath}/{BaseAvatar.name}/PhantomSystem_FX.controller");
+            AssetDatabase.DeleteAsset($"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomOFF.anim");
+            AssetDatabase.DeleteAsset($"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomPrepare.anim");
+            AssetDatabase.DeleteAsset($"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomFreezeOff.anim");
+            AssetDatabase.DeleteAsset($"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomFreeze.anim");
+            AssetDatabase.DeleteAsset($"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomSystem_FX.controller");
             // check if folder exists, if not, create it
-            if (!Directory.Exists($"{animationFolderPath}/{BaseAvatar.name}"))
+            if (!Directory.Exists($"{GeneratedAnimationFolder}/{BaseAvatar.name}"))
             {
-                Directory.CreateDirectory($"{animationFolderPath}/{BaseAvatar.name}");
+                Directory.CreateDirectory($"{GeneratedAnimationFolder}/{BaseAvatar.name}");
             }
             // save animation clips
-            AssetDatabase.CreateAsset(PhantomOFF, $"{animationFolderPath}/{BaseAvatar.name}/PhantomOFF.anim");
-            AssetDatabase.CreateAsset(PhantomPrepare, $"{animationFolderPath}/{BaseAvatar.name}/PhantomPrepare.anim");
-            AssetDatabase.CreateAsset(PhantomFreezeOff, $"{animationFolderPath}/{BaseAvatar.name}/PhantomFreezeOff.anim");
-            AssetDatabase.CreateAsset(PhantomFreeze, $"{animationFolderPath}/{BaseAvatar.name}/PhantomFreeze.anim");
+            AssetDatabase.CreateAsset(PhantomOFF, $"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomOFF.anim");
+            AssetDatabase.CreateAsset(PhantomPrepare, $"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomPrepare.anim");
+            AssetDatabase.CreateAsset(PhantomFreezeOff, $"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomFreezeOff.anim");
+            AssetDatabase.CreateAsset(PhantomFreeze, $"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomFreeze.anim");
 
             // delete existing animator controller
-            AssetDatabase.DeleteAsset($"{animationFolderPath}/{BaseAvatar.name}/PhantomSystem_FX.controller");
+            AssetDatabase.DeleteAsset($"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomSystem_FX.controller");
             // load reference animator controller
-            AssetDatabase.CopyAsset($"{animationFolderPath}/PhantomSystem_FX_Reference.controller", $"{animationFolderPath}/{BaseAvatar.name}/PhantomSystem_FX.controller");
-            var PhantomController = AssetDatabase.LoadAssetAtPath<AnimatorController>($"{animationFolderPath}/{BaseAvatar.name}/PhantomSystem_FX.controller");
+            AssetDatabase.CopyAsset(ReferenceAnimationPath, $"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomSystem_FX.controller");
+            var PhantomController = AssetDatabase.LoadAssetAtPath<AnimatorController>($"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomSystem_FX.controller");
             // change controller's animation clips
             var MainStateMachine = PhantomController.layers[1].stateMachine;
             var states = MainStateMachine.states;
@@ -409,12 +483,12 @@ namespace MPCCT
                 // Rebase the Phantom Avatar's MA Menu installer to the PhantomMA
 
                 // create menu folder if not exists
-                if (!Directory.Exists($"{MenuPath}/{BaseAvatar.name}"))
+                if (!Directory.Exists($"{GeneratedMenuFolder}/{BaseAvatar.name}"))
                 {
-                    Directory.CreateDirectory($"{MenuPath}/{BaseAvatar.name}");
+                    Directory.CreateDirectory($"{GeneratedMenuFolder}/{BaseAvatar.name}");
                 }
                 // delete existing menus
-                string[] existingMenus = Directory.GetFiles($"{MenuPath}/{BaseAvatar.name}");
+                string[] existingMenus = Directory.GetFiles($"{GeneratedMenuFolder}/{BaseAvatar.name}");
                 foreach (var existingmenu in existingMenus)
                 {
                     AssetDatabase.DeleteAsset(existingmenu);
@@ -430,13 +504,13 @@ namespace MPCCT
                     else
                     {
                         // Copy the menu to the PhantomSystem folder
-                        installer.installTargetMenu = CopyExpressionMenuRecursively(installer.installTargetMenu, $"{MenuPath}/{BaseAvatar.name}");
+                        installer.installTargetMenu = CopyExpressionMenuRecursively(installer.installTargetMenu, $"{GeneratedMenuFolder}/{BaseAvatar.name}");
                     }
 
                     if (installer.menuToAppend != null)
                     {
                         // Copy the menu to the PhantomSystem folder
-                        installer.menuToAppend = CopyExpressionMenuRecursively(installer.menuToAppend, $"{MenuPath}/{BaseAvatar.name}");
+                        installer.menuToAppend = CopyExpressionMenuRecursively(installer.menuToAppend, $"{GeneratedMenuFolder}/{BaseAvatar.name}");
                     }
                 }
 
@@ -446,7 +520,7 @@ namespace MPCCT
                     if (item.Control.type == VRCExpressionsMenu.Control.ControlType.SubMenu && item.MenuSource == SubmenuSource.MenuAsset)
                     {
                         // Copy the menu to the PhantomSystem folder
-                        item.Control.subMenu = CopyExpressionMenuRecursively(item.Control.subMenu, $"{MenuPath}/{BaseAvatar.name}");
+                        item.Control.subMenu = CopyExpressionMenuRecursively(item.Control.subMenu, $"{GeneratedMenuFolder}/{BaseAvatar.name}");
                     }
                     // Rename parameters if MA Menu Item use custom parameters,
                     // because using identical parameter names in MA Menu Item across the phantom avatar and the base avatar can cause unexpected behavior.
@@ -492,6 +566,26 @@ namespace MPCCT
             MAPrefabInstance.name = "PhantomMA";
             // redirect the Phantom Avatar Animator to the new controller
             MAPrefabInstance.GetComponent<ModularAvatarMergeAnimator>().animator = PhantomController;
+            // Menu Localization
+            switch (currentLocale)
+            {
+                case Locale.Chinese:
+                    {
+                        var MainMenu = IsRemovePhantomMenu ? AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalMainMenu_NoPhantomMenuPath_zh) : AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalMainMenuPath_zh);
+                        MAPrefabInstance.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = MainMenu;
+                        break;
+                    }
+                case Locale.English:
+                    {
+                        break;
+                    }
+                case Locale.Japanese:
+                    {
+                        var MainMenu = IsRemovePhantomMenu ? AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalMainMenu_NoPhantomMenuPath_jp) : AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalMainMenuPath_jp);
+                        MAPrefabInstance.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = MainMenu;
+                        break;
+                    }
+            }
 
             // View System
             if (!IsRemoveViewSystem)
@@ -516,6 +610,33 @@ namespace MPCCT
                 // Set MA Bone Proxy for BaseAvatarViewPoint
                 ModularAvatarBoneProxy PhantomViewPointProxy = PhantomAvatarViewPoint.GetComponent<ModularAvatarBoneProxy>();
                 PhantomViewPointProxy.subPath = PhantomBonePaths[HumanBodyBones.Head];
+
+                // Menu Localization
+                switch (currentLocale)
+                {
+                    case Locale.Chinese:
+                        {
+                            VRCExpressionsMenu ViewMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalViewSysMenuPath_zh);
+                            ViewSystem.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = ViewMenu;
+                            ViewSystem.GetComponent<ModularAvatarMenuInstaller>().installTargetMenu = IsRemovePhantomMenu ? 
+                                AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalSubMenu_NoPhantomMenuPath_zh) : 
+                                AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalSubMenuPath_zh);
+                            break;
+                        }
+                    case Locale.English:
+                        {
+                            break;
+                        }
+                    case Locale.Japanese:
+                        {
+                            VRCExpressionsMenu ViewMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalViewSysMenuPath_jp);
+                            ViewSystem.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = ViewMenu;
+                            ViewSystem.GetComponent<ModularAvatarMenuInstaller>().installTargetMenu = IsRemovePhantomMenu ?
+                                AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalSubMenu_NoPhantomMenuPath_jp) :
+                                AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalSubMenuPath_jp);
+                            break;
+                        }
+                }
             }
 
             if (!IsRemoveOriginalAnimator)
@@ -551,12 +672,80 @@ namespace MPCCT
                     if (PhantomAvatar.expressionsMenu != null)
                     {
                         // Copy the menu to the PhantomSystem folder
-                        PhantomAvatarMAMenuInstaller.menuToAppend = CopyExpressionMenuRecursively(PhantomAvatar.expressionsMenu, $"{MenuPath}/{BaseAvatar.name}");
+                        PhantomAvatarMAMenuInstaller.menuToAppend = CopyExpressionMenuRecursively(PhantomAvatar.expressionsMenu, $"{GeneratedMenuFolder}/{BaseAvatar.name}");
                         PhantomAvatarMAMenuInstaller.installTargetMenu = PhantomMenu;
                     }
                 }
             }
 
+            // Setup GrabRoot
+            GameObject GrabPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(GrabPrefabPath);
+            GameObject GrabRoot = (GameObject)PrefabUtility.InstantiatePrefab(GrabPrefab, PhantomSystem.transform);
+            GrabRoot.name = "GrabRoot";
+            // Set MA Bone Proxy for GrabRoot
+            ModularAvatarBoneProxy GrabRootMA = GrabRoot.GetComponent<ModularAvatarBoneProxy>();
+            GrabRootMA.subPath = GetRelativePath(PhantomArmature,BaseAvatar.transform);
+            // Set Constraints for GrabRoot
+            var GrabRootConstraint = GrabRoot.GetComponentInChildren<VRCParentConstraint>();
+            GrabRootConstraint.Sources = new VRCConstraintSourceKeyableList
+            {
+                new VRCConstraintSource
+                {
+                    SourceTransform = PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips),
+                    Weight = 1f
+                }
+            };
+            // Add Constraints for Phantom Avatar's Hips to follow GrabRoot when grabbed
+            var PhantomHipsPositionConstraint = PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips).gameObject.AddComponent<VRCPositionConstraint>();
+            PhantomHipsPositionConstraint.Sources = new VRCConstraintSourceKeyableList
+            {
+                new VRCConstraintSource
+                {
+                    SourceTransform = GrabRootConstraint.transform,
+                    Weight = 1f
+                }
+            };
+            // Create Animation Clip for GrabRoot
+            var GrabOn = new AnimationClip();
+            var GrabOff = new AnimationClip();
+            var GrabPrepare = new AnimationClip();
+            // GrabOn: Disable Hips Parent Constraint
+            GrabOn.SetCurve(GetRelativePath(PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
+            // GrabOn: Enable Hips Position Constraint
+            GrabOn.SetCurve(GetRelativePath(PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform), typeof(VRCPositionConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+            // GrabOn: Disable GrabRoot Constraint
+            GrabOn.SetCurve(GetRelativePath(GrabRootConstraint.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
+
+            // GrabOff: Enable Hips Parent Constraint
+            GrabOff.SetCurve(GetRelativePath(PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+            // GrabOff: Disable Hips Position Constraint
+            GrabOff.SetCurve(GetRelativePath(PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform), typeof(VRCPositionConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
+            // GrabOff: Enable GrabRoot Constraint
+            GrabOff.SetCurve(GetRelativePath(GrabRootConstraint.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+
+            // delete existing Grab Animation Clips
+            AssetDatabase.DeleteAsset($"{GeneratedAnimationFolder}/{BaseAvatar.name}/GrabOn.anim");
+            AssetDatabase.DeleteAsset($"{GeneratedAnimationFolder}/{BaseAvatar.name}/GrabOff.anim");
+            // save Grab Animation Clips
+            AssetDatabase.CreateAsset(GrabOn, $"{GeneratedAnimationFolder}/{BaseAvatar.name}/GrabOn.anim");
+            AssetDatabase.CreateAsset(GrabOff, $"{GeneratedAnimationFolder}/{BaseAvatar.name}/GrabOff.anim");
+
+            // change controller's Grab animation clips
+            var GrabStateMachine = PhantomController.layers[2].stateMachine;
+            foreach (var state in GrabStateMachine.states)
+            {
+                if (state.state.name == "GrabOn")
+                {
+                    state.state.motion = GrabOn;
+                }
+                else if (state.state.name == "GrabOff")
+                {
+                    state.state.motion = GrabOff;
+                }
+            }
+            EditorUtility.SetDirty(PhantomController);
+
+            // Change PhysBone ImmobileType
             var PhantomPhysBones = PhantomAvatarRoot.GetComponentsInChildren<VRCPhysBone>(true);
             if (IsChangePBImmobileType)
             {

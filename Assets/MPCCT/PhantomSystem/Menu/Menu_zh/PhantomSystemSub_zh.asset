@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: -340790334, guid: 67cc4cb7839cd3741b63733d5adf0442, type: 3}
-  m_Name: PhantomSystemSub
+  m_Name: PhantomSystemSub_zh
   m_EditorClassIdentifier: 
   Parameters: {fileID: 11400000, guid: 5d9da834941733b4cb463d2d66bd74af, type: 2}
   controls:
-  - name: PhantomActive
+  - name: "\u5206\u8EAB\u542F\u52A8"
     icon: {fileID: 0}
     type: 102
     parameter:
@@ -24,7 +24,7 @@ MonoBehaviour:
     subMenu: {fileID: 0}
     subParameters: []
     labels: []
-  - name: Freeze
+  - name: "\u5206\u8EAB\u9759\u6B62"
     icon: {fileID: 0}
     type: 102
     parameter:
@@ -34,7 +34,7 @@ MonoBehaviour:
     subMenu: {fileID: 0}
     subParameters: []
     labels: []
-  - name: PhantomAvatarMenu
+  - name: "\u5206\u8EAB\u83DC\u5355"
     icon: {fileID: 0}
     type: 103
     parameter:
