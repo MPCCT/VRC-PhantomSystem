@@ -4,8 +4,8 @@
 ## 准备工作
 在使用该工具前，请确保以下内容正确安装：
 1. Unity 2022.3.22f1
-2. VRChat SDK (仅作为参考，在该文档编辑时使用的版本为3.8.2)
-3. [Modular Avatar](https://github.com/bdunderscore/modular-avatar) (仅作为参考，在该文档编辑时使用的版本为1.13.4)
+2. VRChat SDK (仅作为参考，在该文档编辑时使用的版本为3.9.0)
+3. [Modular Avatar](https://github.com/bdunderscore/modular-avatar) (仅作为参考，在该文档编辑时使用的版本为1.14.3)
 
 ## 使用方法
 1. 准备好一个基础模型和准备作为分身的分身模型（最好与基础模型身体相同或相似）
@@ -15,6 +15,11 @@
 
 需要注意该工具为[Modular Avatar](https://github.com/bdunderscore/modular-avatar)做了一定适配，因此分身模型在配置前可以自由添加有[Modular Avatar](https://github.com/bdunderscore/modular-avatar)适配的组件。
 > **卸载系统**：只需删除模型下的 `PhantomSystem` 对象即可
+
+---
+## 现有特殊功能
+- ViewSystem：可以开启一个可以调整位置和大小的，能看到分身视野的小屏幕
+- Grab：现在你可以抓住分身的腰部来移动分身了
 
 ---
 
@@ -29,5 +34,6 @@
 
 - **分身模型配置后极其扭曲**：分身模型的骨骼可能和基础模型不兼容，可以尝试勾选高级设置中 **使用Rotation Constraint** 选项。
 - **分身模型的部分动骨（`PhysBones`）在Freeze后会随着本体移动而移动**：这大概是因为使用了Immobile Type为World的动骨导致，可以尝试勾选高级设置中 **更改分身模型动骨ImmobileType** 选项（可能会导致分身模型中的部分动骨异常）。
+- **其他人看到的分身模型位置不统一**：同步问题，可以关闭分身重新生成来同步位置。
 
 ---
