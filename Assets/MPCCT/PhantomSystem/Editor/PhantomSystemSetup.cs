@@ -56,8 +56,8 @@ namespace MPCCT
         private const string LocalSubMenu_NoPhantomMenuPath_zh = "Assets/MPCCT/PhantomSystem/Menu/Menu_zh/PhantomSystemSub_NoPhantomMenu_zh.asset";
         private const string LocalSubMenu_NoPhantomMenuPath_jp = "Assets/MPCCT/PhantomSystem/Menu/Menu_jp/PhantomSystemSub_NoPhantomMenu_jp.asset";
 
-        private const string LocalViewSysMenuPath_zh = "Assets/MPCCT/PhantomSystem/ViewSystem/Animation/Menu/Menu_zh/ViewMain_zh.asset";
-        private const string LocalViewSysMenuPath_jp = "Assets/MPCCT/PhantomSystem/ViewSystem/Animation/Menu/Menu_jp/ViewMain_jp.asset";
+        private const string LocalViewSysMenuPath_zh = "Assets/MPCCT/PhantomSystem/ViewSystem/Menu/Menu_zh/ViewMain_zh.asset";
+        private const string LocalViewSysMenuPath_jp = "Assets/MPCCT/PhantomSystem/ViewSystem/Menu/Menu_jp/ViewMain_jp.asset";
 
         private static readonly Dictionary<string, (string en, string zh, string jp)> s_texts = new Dictionary<string, (string, string, string)>
         {
@@ -92,6 +92,87 @@ namespace MPCCT
                     return tuple.jp;
                 default:
                     return tuple.en;
+            }
+        }
+
+        // Calss to hold context data between setup steps
+        private class SetupContext
+        {
+            public GameObject PhantomSystem;
+            public GameObject PhantomAvatarRoot;
+            public Animator PhantomAnimator;
+            public Animator BaseAnimator;
+            public Transform PhantomArmature;
+            public Transform BaseArmature;
+            public Dictionary<HumanBodyBones, string> PhantomBonePaths = new Dictionary<HumanBodyBones, string>();
+        }
+
+        // Class to hold animation clips and controller
+        private class SetupAnimation
+        {
+            public AnimatorController PhantomController;
+            public AnimationClip PhantomOFF = new AnimationClip();
+            public AnimationClip PhantomPrepare = new AnimationClip();
+            public AnimationClip PhantomFreezeOff = new AnimationClip();
+            public AnimationClip PhantomFreeze = new AnimationClip();
+            public AnimationClip GrabOn = new AnimationClip();
+            public AnimationClip GrabOff = new AnimationClip();
+
+            public void Save(string animFolderForAvatar, string referenceAnimationPath)
+            {
+                // create folder if not exists
+                if (!Directory.Exists(animFolderForAvatar))
+                {
+                    Directory.CreateDirectory(animFolderForAvatar);
+                }
+
+                // delete existing assets if any
+                AssetDatabase.DeleteAsset($"{animFolderForAvatar}/PhantomOFF.anim");
+                AssetDatabase.DeleteAsset($"{animFolderForAvatar}/PhantomPrepare.anim");
+                AssetDatabase.DeleteAsset($"{animFolderForAvatar}/PhantomFreezeOff.anim");
+                AssetDatabase.DeleteAsset($"{animFolderForAvatar}/PhantomFreeze.anim");
+                AssetDatabase.DeleteAsset($"{animFolderForAvatar}/GrabOn.anim");
+                AssetDatabase.DeleteAsset($"{animFolderForAvatar}/GrabOff.anim");
+                AssetDatabase.DeleteAsset($"{animFolderForAvatar}/PhantomSystem_FX.controller");
+
+
+                // create assets
+                AssetDatabase.CreateAsset(PhantomOFF, $"{animFolderForAvatar}/PhantomOFF.anim");
+                AssetDatabase.CreateAsset(PhantomPrepare, $"{animFolderForAvatar}/PhantomPrepare.anim");
+                AssetDatabase.CreateAsset(PhantomFreezeOff, $"{animFolderForAvatar}/PhantomFreezeOff.anim");
+                AssetDatabase.CreateAsset(PhantomFreeze, $"{animFolderForAvatar}/PhantomFreeze.anim");
+                AssetDatabase.CreateAsset(GrabOn, $"{animFolderForAvatar}/GrabOn.anim");
+                AssetDatabase.CreateAsset(GrabOff, $"{animFolderForAvatar}/GrabOff.anim");
+
+                // copy reference controller and replace states
+                AssetDatabase.CopyAsset(referenceAnimationPath, $"{animFolderForAvatar}/PhantomSystem_FX.controller");
+                PhantomController = AssetDatabase.LoadAssetAtPath<AnimatorController>($"{animFolderForAvatar}/PhantomSystem_FX.controller");
+
+                // validation reference controller
+                if (!(PhantomController != null && PhantomController.layers.Length > 2))
+                {
+                    new InvalidOperationException("Invalid Reference Animator Controller");
+                }
+
+                var MainStateMachine = PhantomController.layers[1].stateMachine;
+                var GrabStateMachine = PhantomController.layers[2].stateMachine;
+
+                foreach (var state in MainStateMachine.states)
+                {
+                    if (state.state.name == "PhantomOFF") state.state.motion = PhantomOFF;
+                    else if (state.state.name == "PhantomPrepare") state.state.motion = PhantomPrepare;
+                    else if (state.state.name == "PhantomFreezeOff") state.state.motion = PhantomFreezeOff;
+                    else if (state.state.name == "PhantomFreeze") state.state.motion = PhantomFreeze;
+                }
+                
+                foreach (var state in GrabStateMachine.states)
+                {
+                    if (state.state.name == "GrabOn") state.state.motion = GrabOn;
+                    else if (state.state.name == "GrabOff") state.state.motion = GrabOff;
+                }
+                EditorUtility.SetDirty(PhantomController);
+
+                AssetDatabase.SaveAssets();
             }
         }
 
@@ -171,116 +252,132 @@ namespace MPCCT
 
         private void Setup()
         {
+            SavedMenuName.Clear();
+            var ctx = new SetupContext();
+            var anim = new SetupAnimation();
+
+            // Validation: BaseAvatar and PhantomAvatar must be set
             if (BaseAvatar == null || PhantomAvatar == null)
             {
-                throw new InvalidOperationException("Base Avatar and Phantom Avatar must be set.");
+                throw new InvalidOperationException("[PhantomSystem] Base Avatar and Phantom Avatar must be set.");
             }
 
-            // Magic Bug Fix
             BaseAvatar.gameObject.SetActive(true);
             PhantomAvatar.gameObject.SetActive(false);
 
-            Debug.Log($"Setting up Phantom System for {BaseAvatar.name} using {PhantomAvatar.name} ...");
-            // Delete existing Phantom System
+            Debug.Log($"[PhantomSystem]Setting up Phantom System for {BaseAvatar.name} using {PhantomAvatar.name} ...");
+
+            DeleteExistingPhantomSystem();
+            PhantomSystemInit(ctx);
+
+            // Validation: Animator should be humanoid
+            ctx.PhantomAnimator = ctx.PhantomAvatarRoot.GetComponent<Animator>();
+            if (ctx.PhantomAnimator == null || ctx.PhantomAnimator.isHuman == false)
+            {
+                throw new InvalidOperationException("[PhantomSystem] Phantom Avatar must have a humanoid Animator component.");
+            }
+
+            ctx.BaseAnimator = BaseAvatar.GetComponent<Animator>();
+            if (ctx.BaseAnimator == null || ctx.BaseAnimator.isHuman == false)
+            {
+                throw new InvalidOperationException("[PhantomSystem] Base Avatar must have a humanoid Animator component.");
+            }
+
+            SetupArmatureConstraint(ctx, anim);
+            SetupBoneConstraints(ctx, anim);
+            AdaptModularAvatar(ctx);
+            SetupGrabRoot(ctx, anim);
+            anim.Save($"{GeneratedAnimationFolder}/{BaseAvatar.name}", ReferenceAnimationPath);
+            AddMAPrefab(ctx, anim);
+            if (!IsRemoveViewSystem) SetupViewSystem(ctx);
+            if (!IsRemoveOriginalAnimator) MergeOriginalAnimator(ctx);
+            if (IsChangePBImmobileType) ChangePhysBoneImmobileType(ctx);
+            DeletePhantomAvatarRootComponents(ctx);
+        }
+
+        private void DeleteExistingPhantomSystem()
+        {
             var existingPhantomSystem = BaseAvatar.transform.Find("PhantomSystem");
             if (existingPhantomSystem != null)
             {
-                Debug.Log("Deleting existing Phantom System");
+                Debug.Log("[PhantomSystem] Deleting existing Phantom System");
                 DestroyImmediate(existingPhantomSystem.gameObject);
             }
+        }
 
-            // Copy Phantom Avatar to Base Avatar
-            var PhantomSystem = new GameObject("PhantomSystem");
-            PhantomSystem.transform.parent = BaseAvatar.transform;
-            GameObject PhantomAvatarRoot = Instantiate(PhantomAvatar.gameObject, PhantomSystem.transform);
-            PhantomAvatarRoot.transform.position = BaseAvatar.transform.position;
-            PhantomAvatarRoot.transform.rotation = BaseAvatar.transform.rotation;
+        private void PhantomSystemInit(SetupContext ctx)
+        {
+            ctx.PhantomSystem = new GameObject("PhantomSystem");
+            ctx.PhantomSystem.transform.parent = BaseAvatar.transform;
 
-            // Get the Animator component from the Phantom Avatar
-            Animator PhantomAnimator = PhantomAvatarRoot.GetComponent<Animator>();
-            if (PhantomAnimator == null || PhantomAnimator.isHuman == false)
-            {
-                throw new InvalidOperationException("Phantom Avatar must have a humanoid Animator component.");
-            }
-            //Get the Animator component from the Base Avatar
-            Animator BaseAnimator = BaseAvatar.GetComponent<Animator>();
-            if (BaseAnimator == null || BaseAnimator.isHuman == false)
-            {
-                throw new InvalidOperationException("Base Avatar must have a humanoid Animator component.");
-            }
+            ctx.PhantomAvatarRoot = Instantiate(PhantomAvatar.gameObject, ctx.PhantomSystem.transform);
+            ctx.PhantomAvatarRoot.transform.position = BaseAvatar.transform.position;
+            ctx.PhantomAvatarRoot.transform.rotation = BaseAvatar.transform.rotation;
 
-            // Armature Constraint
-            Transform PhantomArmature = PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips).parent;
-            Transform BaseArmature = BaseAnimator.GetBoneTransform(HumanBodyBones.Hips).parent;
+            ctx.PhantomAvatarRoot.name = "PhantomAvatar";
+            ctx.PhantomAvatarRoot.SetActive(false);
+        }
+
+        private void SetupArmatureConstraint(SetupContext ctx, SetupAnimation anim)
+        {
+            ctx.PhantomArmature = ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips).parent;
+            ctx.BaseArmature = ctx.BaseAnimator.GetBoneTransform(HumanBodyBones.Hips).parent;
+
             // Change the Phantom Avatar Armature's name
-            PhantomArmature.name = "Armature_phantom";
-            var ArmatureConstraint = PhantomArmature.gameObject.AddComponent<VRCParentConstraint>();
+            ctx.PhantomArmature.name = "Armature_phantom";
+            var ArmatureConstraint = ctx.PhantomArmature.gameObject.AddComponent<VRCParentConstraint>();
             ArmatureConstraint.Locked = true;
             ArmatureConstraint.IsActive = false;
             ArmatureConstraint.Sources = new VRCConstraintSourceKeyableList
             {
                 new VRCConstraintSource
                 {
-                    SourceTransform = BaseArmature,
+                    SourceTransform = ctx.BaseArmature,
                     Weight = 1f
                 }
             };
             ArmatureConstraint.enabled = true;
             ArmatureConstraint.FreezeToWorld = true;
 
-            // Set the name of the Phantom Avatar
-            PhantomAvatarRoot.name = "PhantomAvatar";
-            // Deactivate the Phantom Avatar
-            PhantomAvatarRoot.SetActive(false);
-
-            // Animation path: "Assets/MPCCT/PhantomSystem/Animation/<name>"
-            var PhantomOFF = new AnimationClip();
-            var PhantomPrepare = new AnimationClip();
-            var PhantomFreezeOff = new AnimationClip();
-            var PhantomFreeze = new AnimationClip();
-
-            // init all animation clips
-            // PhantomOFF: deactivate the Phantom Avatar
-            PhantomOFF.SetCurve(GetRelativePath(PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(GameObject), "m_IsActive", AnimationCurve.Constant(0, 0, 0));
+            // PhantomOFF: deactivate PhantomAvatar
+            anim.PhantomOFF.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(GameObject), "m_IsActive", AnimationCurve.Constant(0, 0, 0));
             // PhantomOFF: Armature constraint freeze to world; disable the constraint
-            PhantomOFF.SetCurve(GetRelativePath(PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
-            PhantomOFF.SetCurve(GetRelativePath(PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
+            anim.PhantomOFF.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
+            anim.PhantomOFF.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
 
-            // PhantomPrepare: activate the Phantom Avatar
-            PhantomPrepare.SetCurve(GetRelativePath(PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(GameObject), "m_IsActive", AnimationCurve.Constant(0, 0, 1));
+            // PhantomPrepare: activate PhantomAvatar
+            anim.PhantomPrepare.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(GameObject), "m_IsActive", AnimationCurve.Constant(0, 0, 1));
             // PhantomPrepare: Armature constraint unfreeze world; enable the constraint
-            PhantomPrepare.SetCurve(GetRelativePath(PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
-            PhantomPrepare.SetCurve(GetRelativePath(PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+            anim.PhantomPrepare.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
+            anim.PhantomPrepare.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
 
-            // PhantomFreezeOff: activate the Phantom Avatar
-            PhantomFreezeOff.SetCurve(GetRelativePath(PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(GameObject), "m_IsActive", AnimationCurve.Constant(0, 0, 1));
+            // PhantomFreezeOff: activate PhantomAvatar
+            anim.PhantomFreezeOff.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(GameObject), "m_IsActive", AnimationCurve.Constant(0, 0, 1));
             // PhantomFreezeOff: Armature constraint freeze world; enable the constraint
-            PhantomFreezeOff.SetCurve(GetRelativePath(PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
-            PhantomFreezeOff.SetCurve(GetRelativePath(PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+            anim.PhantomFreezeOff.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
+            anim.PhantomFreezeOff.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
 
-            // PhantomFreeze: activate the Phantom Avatar
-            PhantomFreeze.SetCurve(GetRelativePath(PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(GameObject), "m_IsActive", AnimationCurve.Constant(0, 0, 1));
+            // PhantomFreeze: activate PhantomAvatar
+            anim.PhantomFreeze.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(GameObject), "m_IsActive", AnimationCurve.Constant(0, 0, 1));
             // PhantomFreeze: Armature constraint freeze world; enable the constraint
-            PhantomFreeze.SetCurve(GetRelativePath(PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
-            PhantomFreeze.SetCurve(GetRelativePath(PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+            anim.PhantomFreeze.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
+            anim.PhantomFreeze.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+        }
 
-            // The rest bone's constraints
+        private void SetupBoneConstraints(SetupContext ctx, SetupAnimation anim)
+        {
             HumanBodyBones[] humanBones = (HumanBodyBones[])Enum.GetValues(typeof(HumanBodyBones));
-            Dictionary<HumanBodyBones, string> PhantomBonePaths = new Dictionary<HumanBodyBones, string>();
-
             foreach (var bone in humanBones)
             {
-                if (bone == HumanBodyBones.LastBone)
-                {
-                    continue; // Skip LastBone
-                }
-                Transform PhantomBone = PhantomAnimator.GetBoneTransform(bone);
-                Transform BaseBone = BaseAnimator.GetBoneTransform(bone);
+                if (bone == HumanBodyBones.LastBone) continue;
+
+                Transform PhantomBone = ctx.PhantomAnimator.GetBoneTransform(bone);
+                Transform BaseBone = ctx.BaseAnimator.GetBoneTransform(bone);
 
                 if (PhantomBone != null)
                 {
-                    // Save pahntom bone path
-                    PhantomBonePaths.Add(bone, GetRelativePath(PhantomBone, BaseAvatar.transform));
+                    // Save phantom bone path
+                    ctx.PhantomBonePaths.Add(bone, GetRelativePath(PhantomBone, BaseAvatar.transform));
                     if (BaseBone != null)
                     {
                         if (!IsUseRotationConstraint)
@@ -301,15 +398,10 @@ namespace MPCCT
                             constraint.SolveInLocalSpace = true;
 
                             // Add keyframes to the Animation Clips
-
-                            // PhantomOFF: constraint enable
-                            PhantomOFF.SetCurve(PhantomBonePaths[bone], typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
-                            // PhantomPrepare: constraint enable
-                            PhantomPrepare.SetCurve(PhantomBonePaths[bone], typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
-                            // PhantomFreezeOff: constraint enable
-                            PhantomFreezeOff.SetCurve(PhantomBonePaths[bone], typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
-                            // PhantomFreeze: constraint disable
-                            PhantomFreeze.SetCurve(PhantomBonePaths[bone], typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
+                            anim.PhantomOFF.SetCurve(ctx.PhantomBonePaths[bone], typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+                            anim.PhantomPrepare.SetCurve(ctx.PhantomBonePaths[bone], typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+                            anim.PhantomFreezeOff.SetCurve(ctx.PhantomBonePaths[bone], typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+                            anim.PhantomFreeze.SetCurve(ctx.PhantomBonePaths[bone], typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
                         }
                         else
                         {
@@ -325,88 +417,32 @@ namespace MPCCT
                                     Weight = 1f,
                                 }
                             };
-                            if (IsRotationSolveInWorldSpace)
-                            {
-                                constraint.SolveInLocalSpace = false; // Use world space solving
-                            }
-                            else
-                            {
-                                constraint.SolveInLocalSpace = true; // Use local space solving
-                            }
+                            constraint.SolveInLocalSpace = !IsRotationSolveInWorldSpace;
                             constraint.IsActive = true;
                             constraint.TryBakeCurrentOffsets(VRCConstraintBase.BakeOptions.BakeOffsets); // Auto calculate offsets
                             constraint.Locked = true;
 
                             // Add keyframes to the Animation Clips
-
-                            // PhantomOFF: constraint enable
-                            PhantomOFF.SetCurve(PhantomBonePaths[bone], typeof(VRCRotationConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
-                            // PhantomPrepare: constraint enable
-                            PhantomPrepare.SetCurve(PhantomBonePaths[bone], typeof(VRCRotationConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
-                            // PhantomFreezeOff: constraint enable
-                            PhantomFreezeOff.SetCurve(PhantomBonePaths[bone], typeof(VRCRotationConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
-                            // PhantomFreeze: constraint disable
-                            PhantomFreeze.SetCurve(PhantomBonePaths[bone], typeof(VRCRotationConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
+                            anim.PhantomOFF.SetCurve(ctx.PhantomBonePaths[bone], typeof(VRCRotationConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+                            anim.PhantomPrepare.SetCurve(ctx.PhantomBonePaths[bone], typeof(VRCRotationConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+                            anim.PhantomFreezeOff.SetCurve(ctx.PhantomBonePaths[bone], typeof(VRCRotationConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+                            anim.PhantomFreeze.SetCurve(ctx.PhantomBonePaths[bone], typeof(VRCRotationConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
                         }
                     }
                 }
             }
+        }
 
-            // delete existing Animation Clips And Controllers
-            AssetDatabase.DeleteAsset($"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomOFF.anim");
-            AssetDatabase.DeleteAsset($"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomPrepare.anim");
-            AssetDatabase.DeleteAsset($"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomFreezeOff.anim");
-            AssetDatabase.DeleteAsset($"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomFreeze.anim");
-            AssetDatabase.DeleteAsset($"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomSystem_FX.controller");
-            // check if folder exists, if not, create it
-            if (!Directory.Exists($"{GeneratedAnimationFolder}/{BaseAvatar.name}"))
-            {
-                Directory.CreateDirectory($"{GeneratedAnimationFolder}/{BaseAvatar.name}");
-            }
-            // save animation clips
-            AssetDatabase.CreateAsset(PhantomOFF, $"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomOFF.anim");
-            AssetDatabase.CreateAsset(PhantomPrepare, $"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomPrepare.anim");
-            AssetDatabase.CreateAsset(PhantomFreezeOff, $"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomFreezeOff.anim");
-            AssetDatabase.CreateAsset(PhantomFreeze, $"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomFreeze.anim");
+        private void AdaptModularAvatar(SetupContext ctx)
+        {
+            var MABoneProxy = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarBoneProxy>(true);
+            var MAMergeArmature = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMergeArmature>(true);
+            var MAMeshSettings = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMeshSettings>(true);
 
-            // delete existing animator controller
-            AssetDatabase.DeleteAsset($"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomSystem_FX.controller");
-            // load reference animator controller
-            AssetDatabase.CopyAsset(ReferenceAnimationPath, $"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomSystem_FX.controller");
-            var PhantomController = AssetDatabase.LoadAssetAtPath<AnimatorController>($"{GeneratedAnimationFolder}/{BaseAvatar.name}/PhantomSystem_FX.controller");
-            // change controller's animation clips
-            var MainStateMachine = PhantomController.layers[1].stateMachine;
-            var states = MainStateMachine.states;
-            foreach (var state in states)
-            {
-                if (state.state.name == "PhantomOFF")
-                {
-                    state.state.motion = PhantomOFF;
-                }
-                else if (state.state.name == "PhantomPrepare")
-                {
-                    state.state.motion = PhantomPrepare;
-                }
-                else if (state.state.name == "PhantomFreezeOff")
-                {
-                    state.state.motion = PhantomFreezeOff;
-                }
-                else if (state.state.name == "PhantomFreeze")
-                {
-                    state.state.motion = PhantomFreeze;
-                }
-            }
-            EditorUtility.SetDirty(PhantomController);
-
-            // MA Adaptation
-            var MABoneProxy = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarBoneProxy>(true);
-            var MAMergeArmature = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMergeArmature>(true);
-            var MAMeshSettings = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMeshSettings>(true);
-
-            var MAInstaller = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMenuInstaller>(true);
-            var MAMenuItems = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMenuItem>(true);
-            var MAParameter = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarParameters>(true);
-            var MAMergeAnimator = PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMergeAnimator>(true);
+            var MAInstaller = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMenuInstaller>(true);
+            var MAMenuItems = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMenuItem>(true);
+            var MAParameter = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarParameters>(true);
+            var MAMergeAnimator = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMergeAnimator>(true);
 
             VRCExpressionsMenu PhantomMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(PhantomMenuPath);
 
@@ -419,7 +455,7 @@ namespace MPCCT
                 }
                 else
                 {
-                    proxy.subPath = PhantomBonePaths[proxy.boneReference];
+                    proxy.subPath = ctx.PhantomBonePaths[proxy.boneReference];
                     proxy.boneReference = HumanBodyBones.LastBone;
                 }
             }
@@ -427,11 +463,10 @@ namespace MPCCT
             // MA merge armature adaption
             foreach (var armature in MAMergeArmature)
             {
-                // Sometimes MA merge armature will merge phantom avatar's cloth to base avatar's armature
-                if (armature.mergeTarget.referencePath == BaseArmature.name)
+                if (armature.mergeTarget.referencePath == ctx.BaseArmature.name)
                 {
                     AvatarObjectReference tempRelativePathRoot = new AvatarObjectReference();
-                    tempRelativePathRoot.Set(PhantomArmature.gameObject);
+                    tempRelativePathRoot.Set(ctx.PhantomArmature.gameObject);
                     armature.mergeTarget = tempRelativePathRoot;
                 }
             }
@@ -439,10 +474,8 @@ namespace MPCCT
             // MA mesh settings adaption
             foreach (var setting in MAMeshSettings)
             {
-                // Same as MA merge armature
-                // only consider hip situation
-                var BaseHipPath = GetRelativePath(BaseAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform);
-                var PhantomHip = PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips).gameObject;
+                var BaseHipPath = GetRelativePath(ctx.BaseAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform);
+                var PhantomHip = ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips).gameObject;
                 AvatarObjectReference tempRelativePathRoot = new AvatarObjectReference();
                 tempRelativePathRoot.Set(PhantomHip);
                 if (setting.ProbeAnchor.referencePath == BaseHipPath)
@@ -457,44 +490,22 @@ namespace MPCCT
 
             if (IsRemovePhantomAvatarMA)
             {
-                // remove the Phantom Avatar's MA Menu installer if it exists
-                foreach (var installer in MAInstaller)
-                {
-                    DestroyImmediate(installer);
-                }
-                // remove the Phantom Avatar's MA Menu Items if it exists
-                foreach (var item in MAMenuItems)
-                {
-                    DestroyImmediate(item);
-                }
-                // remove the Phantom Avatar's MA Parameters if it exists
-                foreach (var parameter in MAParameter)
-                {
-                    DestroyImmediate(parameter);
-                }
-                //remove the Phantom Avatar's MA Merge Animator if it exists
-                foreach (var animator in MAMergeAnimator)
-                {
-                    DestroyImmediate(animator);
-                }
+                // remove the Phantom Avatar's MA components
+                foreach (var installer in MAInstaller) DestroyImmediate(installer);
+                foreach (var item in MAMenuItems) DestroyImmediate(item);
+                foreach (var parameter in MAParameter) DestroyImmediate(parameter);
+                foreach (var animator in MAMergeAnimator) DestroyImmediate(animator);
             }
             else
             {
-                // Rebase the Phantom Avatar's MA Menu installer to the PhantomMA
-
-                // create menu folder if not exists
+                // Rebase MA menus and parameters
                 if (!Directory.Exists($"{GeneratedMenuFolder}/{BaseAvatar.name}"))
                 {
                     Directory.CreateDirectory($"{GeneratedMenuFolder}/{BaseAvatar.name}");
                 }
-                // delete existing menus
                 string[] existingMenus = Directory.GetFiles($"{GeneratedMenuFolder}/{BaseAvatar.name}");
-                foreach (var existingmenu in existingMenus)
-                {
-                    AssetDatabase.DeleteAsset(existingmenu);
-                }
+                foreach (var existingmenu in existingMenus) AssetDatabase.DeleteAsset(existingmenu);
 
-                // Rebase all MA Menu Installer
                 foreach (var installer in MAInstaller)
                 {
                     if (installer.installTargetMenu == null || installer.installTargetMenu == BaseAvatar.expressionsMenu)
@@ -503,28 +514,21 @@ namespace MPCCT
                     }
                     else
                     {
-                        // Copy the menu to the PhantomSystem folder
                         installer.installTargetMenu = CopyExpressionMenuRecursively(installer.installTargetMenu, $"{GeneratedMenuFolder}/{BaseAvatar.name}");
                     }
 
                     if (installer.menuToAppend != null)
                     {
-                        // Copy the menu to the PhantomSystem folder
                         installer.menuToAppend = CopyExpressionMenuRecursively(installer.menuToAppend, $"{GeneratedMenuFolder}/{BaseAvatar.name}");
                     }
                 }
 
-                // Rebase all MA Menu Items
                 foreach (var item in MAMenuItems)
                 {
                     if (item.Control.type == VRCExpressionsMenu.Control.ControlType.SubMenu && item.MenuSource == SubmenuSource.MenuAsset)
                     {
-                        // Copy the menu to the PhantomSystem folder
                         item.Control.subMenu = CopyExpressionMenuRecursively(item.Control.subMenu, $"{GeneratedMenuFolder}/{BaseAvatar.name}");
                     }
-                    // Rename parameters if MA Menu Item use custom parameters,
-                    // because using identical parameter names in MA Menu Item across the phantom avatar and the base avatar can cause unexpected behavior.
-                    // this may cause problem when using parameters in phantom avatar's FX, but no better solution for now.
                     if (!string.IsNullOrEmpty(item.Control.parameter.name))
                     {
                         var p = item.Control.parameter;
@@ -533,19 +537,17 @@ namespace MPCCT
                     }
                 }
 
-                // MA Merge Animator Absolute Path Rebase
                 foreach (var animator in MAMergeAnimator)
                 {
                     if (animator.pathMode == MergeAnimatorPathMode.Absolute)
                     {
                         animator.pathMode = MergeAnimatorPathMode.Relative;
                         AvatarObjectReference tempRelativePathRoot = new AvatarObjectReference();
-                        tempRelativePathRoot.Set(PhantomAvatarRoot);
+                        tempRelativePathRoot.Set(ctx.PhantomAvatarRoot);
                         animator.relativePathRoot = tempRelativePathRoot;
                     }
                 }
 
-                // Rename all MA Parameters
                 if (IsRenameParameters)
                 {
                     foreach (var parameter in MAParameter)
@@ -559,14 +561,16 @@ namespace MPCCT
                     }
                 }
             }
+        }
 
-            // Add MA Prefab to PhantomSystem
+        private void AddMAPrefab(SetupContext ctx, SetupAnimation anim)
+        {
             GameObject MAPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(IsRemovePhantomMenu ? MAPrefabPath_NoPhantomMenu : MAPrefabPath);
-            GameObject MAPrefabInstance = (GameObject)PrefabUtility.InstantiatePrefab(MAPrefab, PhantomSystem.transform);
+            GameObject MAPrefabInstance = (GameObject)PrefabUtility.InstantiatePrefab(MAPrefab, ctx.PhantomSystem.transform);
             MAPrefabInstance.name = "PhantomMA";
-            // redirect the Phantom Avatar Animator to the new controller
-            MAPrefabInstance.GetComponent<ModularAvatarMergeAnimator>().animator = PhantomController;
-            // Menu Localization
+            MAPrefabInstance.GetComponent<ModularAvatarMergeAnimator>().animator = anim.PhantomController;
+
+            // Localize Menu
             switch (currentLocale)
             {
                 case Locale.Chinese:
@@ -586,117 +590,117 @@ namespace MPCCT
                         break;
                     }
             }
+        }
 
-            // View System
-            if (!IsRemoveViewSystem)
+        private void SetupViewSystem(SetupContext ctx)
+        {
+            GameObject ViewSystemPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(IsRemovePhantomMenu ? ViewSystemPrefabPath_NoPhantomMenu : ViewSystemPrefabPath);
+            GameObject ViewSystem = (GameObject)PrefabUtility.InstantiatePrefab(ViewSystemPrefab, ctx.PhantomSystem.transform);
+            ViewSystem.name = "ViewSystem";
+
+            ModularAvatarBoneProxy ArmatureMA = ViewSystem.transform.Find("ArmatureMA").gameObject.GetComponent<ModularAvatarBoneProxy>();
+            ArmatureMA.subPath = GetRelativePath(ctx.BaseArmature, BaseAvatar.transform);
+
+            GameObject BaseAvatarViewPoint = ViewSystem.transform.Find("BaseAvatarViewPoint").gameObject;
+            BaseAvatarViewPoint.transform.position = BaseAvatar.ViewPosition;
+            BaseAvatarViewPoint.transform.rotation = ctx.BaseAnimator.GetBoneTransform(HumanBodyBones.Head).rotation;
+            GameObject PhantomAvatarViewPoint = ViewSystem.transform.Find("PhantomAvatarViewPoint").gameObject;
+            PhantomAvatarViewPoint.transform.position = PhantomAvatar.ViewPosition;
+            PhantomAvatarViewPoint.transform.rotation = ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Head).rotation;
+
+            ModularAvatarBoneProxy PhantomViewPointProxy = PhantomAvatarViewPoint.GetComponent<ModularAvatarBoneProxy>();
+            if (ctx.PhantomBonePaths.TryGetValue(HumanBodyBones.Head, out var headPath))
             {
-                // Add ViewSystem Prefab to PhantomSystem
-                GameObject ViewSystemPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(IsRemovePhantomMenu ? ViewSystemPrefabPath_NoPhantomMenu : ViewSystemPrefabPath);
-                GameObject ViewSystem = (GameObject)PrefabUtility.InstantiatePrefab(ViewSystemPrefab, PhantomSystem.transform);
-                ViewSystem.name = "ViewSystem";
-
-                // Set Armature MA Bone Proxy
-                ModularAvatarBoneProxy ArmatureMA = ViewSystem.transform.Find("ArmatureMA").gameObject.GetComponent<ModularAvatarBoneProxy>();
-                ArmatureMA.subPath = GetRelativePath(BaseArmature, BaseAvatar.transform);
-
-                // Set ViewPoint
-                GameObject BaseAvatarViewPoint = ViewSystem.transform.Find("BaseAvatarViewPoint").gameObject;
-                BaseAvatarViewPoint.transform.position = BaseAvatar.ViewPosition;
-                BaseAvatarViewPoint.transform.rotation = BaseAnimator.GetBoneTransform(HumanBodyBones.Head).rotation;
-                GameObject PhantomAvatarViewPoint = ViewSystem.transform.Find("PhantomAvatarViewPoint").gameObject;
-                PhantomAvatarViewPoint.transform.position = PhantomAvatar.ViewPosition;
-                PhantomAvatarViewPoint.transform.rotation = PhantomAnimator.GetBoneTransform(HumanBodyBones.Head).rotation;
-
-                // Set MA Bone Proxy for BaseAvatarViewPoint
-                ModularAvatarBoneProxy PhantomViewPointProxy = PhantomAvatarViewPoint.GetComponent<ModularAvatarBoneProxy>();
-                PhantomViewPointProxy.subPath = PhantomBonePaths[HumanBodyBones.Head];
-
-                // Menu Localization
-                switch (currentLocale)
-                {
-                    case Locale.Chinese:
-                        {
-                            VRCExpressionsMenu ViewMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalViewSysMenuPath_zh);
-                            ViewSystem.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = ViewMenu;
-                            ViewSystem.GetComponent<ModularAvatarMenuInstaller>().installTargetMenu = IsRemovePhantomMenu ? 
-                                AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalSubMenu_NoPhantomMenuPath_zh) : 
-                                AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalSubMenuPath_zh);
-                            break;
-                        }
-                    case Locale.English:
-                        {
-                            break;
-                        }
-                    case Locale.Japanese:
-                        {
-                            VRCExpressionsMenu ViewMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalViewSysMenuPath_jp);
-                            ViewSystem.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = ViewMenu;
-                            ViewSystem.GetComponent<ModularAvatarMenuInstaller>().installTargetMenu = IsRemovePhantomMenu ?
-                                AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalSubMenu_NoPhantomMenuPath_jp) :
-                                AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalSubMenuPath_jp);
-                            break;
-                        }
-                }
+                PhantomViewPointProxy.subPath = headPath;
+            }
+            else
+            {
+                Debug.LogWarning("[PhantomSystem] Phantom head bone missing, skipping viewpoint proxy subPath assignment.");
             }
 
-            if (!IsRemoveOriginalAnimator)
+            switch (currentLocale)
             {
-                // Merge original Phantom Avatar's animator
-                GameObject PhantomAvatarMA = new GameObject("PhantomOriginalFX_MA");
-                PhantomAvatarMA.transform.parent = PhantomSystem.transform;
-                // Set MAMergeAnimator for PhantomAvatarMA
-                if (PhantomAvatar.customizeAnimationLayers)
-                {
-                    var PhantomAvatarMAMergeAnimator = PhantomAvatarMA.AddComponent<ModularAvatarMergeAnimator>();
-                    PhantomAvatarMAMergeAnimator.animator = PhantomAvatar.baseAnimationLayers[4].animatorController;
-                    PhantomAvatarMAMergeAnimator.layerType = VRCAvatarDescriptor.AnimLayerType.FX;
-                    PhantomAvatarMAMergeAnimator.deleteAttachedAnimator = true;
-                    PhantomAvatarMAMergeAnimator.pathMode = MergeAnimatorPathMode.Relative;
-                    AvatarObjectReference tempRelativePathRoot = new AvatarObjectReference();
-                    tempRelativePathRoot.Set(PhantomAvatarRoot);
-                    PhantomAvatarMAMergeAnimator.relativePathRoot = tempRelativePathRoot;
-                    PhantomAvatarMAMergeAnimator.matchAvatarWriteDefaults = true;
-                    PhantomAvatarMAMergeAnimator.layerPriority = -1;
-                }
-                // Set MAParameters for PhantomAvatarMA
-                if (PhantomAvatar.customExpressions)
-                {
-                    var PhantomAvatarMAParameters = PhantomAvatarMA.AddComponent<ModularAvatarParameters>();
-                    PhantomAvatarMAParameters.parameters = GetParameterFromVRCParameter(PhantomAvatar.expressionParameters, IsRenameParameters);
-                }
-
-                if (!IsRemovePhantomMenu)
-                {
-                    // Set MA Menu Installer for PhantomAvatarMA
-                    var PhantomAvatarMAMenuInstaller = PhantomAvatarMA.AddComponent<ModularAvatarMenuInstaller>();
-                    if (PhantomAvatar.expressionsMenu != null)
+                case Locale.Chinese:
                     {
-                        // Copy the menu to the PhantomSystem folder
-                        PhantomAvatarMAMenuInstaller.menuToAppend = CopyExpressionMenuRecursively(PhantomAvatar.expressionsMenu, $"{GeneratedMenuFolder}/{BaseAvatar.name}");
-                        PhantomAvatarMAMenuInstaller.installTargetMenu = PhantomMenu;
+                        VRCExpressionsMenu ViewMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalViewSysMenuPath_zh);
+                        ViewSystem.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = ViewMenu;
+                        ViewSystem.GetComponent<ModularAvatarMenuInstaller>().installTargetMenu = IsRemovePhantomMenu ?
+                            AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalSubMenu_NoPhantomMenuPath_zh) :
+                            AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalSubMenuPath_zh);
+                        break;
                     }
-                }
+                case Locale.English:
+                    {
+                        break;
+                    }
+                case Locale.Japanese:
+                    {
+                        VRCExpressionsMenu ViewMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalViewSysMenuPath_jp);
+                        ViewSystem.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = ViewMenu;
+                        ViewSystem.GetComponent<ModularAvatarMenuInstaller>().installTargetMenu = IsRemovePhantomMenu ?
+                            AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalSubMenu_NoPhantomMenuPath_jp) :
+                            AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalSubMenuPath_jp);
+                        break;
+                    }
+            }
+        }
+
+        private void MergeOriginalAnimator(SetupContext ctx)
+        {
+            GameObject PhantomAvatarMA = new GameObject("PhantomOriginalFX_MA");
+            PhantomAvatarMA.transform.parent = ctx.PhantomSystem.transform;
+
+            if (PhantomAvatar.customizeAnimationLayers)
+            {
+                var PhantomAvatarMAMergeAnimator = PhantomAvatarMA.AddComponent<ModularAvatarMergeAnimator>();
+                PhantomAvatarMAMergeAnimator.animator = PhantomAvatar.baseAnimationLayers[4].animatorController;
+                PhantomAvatarMAMergeAnimator.layerType = VRCAvatarDescriptor.AnimLayerType.FX;
+                PhantomAvatarMAMergeAnimator.deleteAttachedAnimator = true;
+                PhantomAvatarMAMergeAnimator.pathMode = MergeAnimatorPathMode.Relative;
+                AvatarObjectReference tempRelativePathRoot = new AvatarObjectReference();
+                tempRelativePathRoot.Set(ctx.PhantomAvatarRoot);
+                PhantomAvatarMAMergeAnimator.relativePathRoot = tempRelativePathRoot;
+                PhantomAvatarMAMergeAnimator.matchAvatarWriteDefaults = true;
+                PhantomAvatarMAMergeAnimator.layerPriority = -1;
             }
 
-            // Setup GrabRoot
+            if (PhantomAvatar.customExpressions)
+            {
+                var PhantomAvatarMAParameters = PhantomAvatarMA.AddComponent<ModularAvatarParameters>();
+                PhantomAvatarMAParameters.parameters = GetParameterFromVRCParameter(PhantomAvatar.expressionParameters, IsRenameParameters);
+            }
+
+            if (!IsRemovePhantomMenu)
+            {
+                var PhantomAvatarMAMenuInstaller = PhantomAvatarMA.AddComponent<ModularAvatarMenuInstaller>();
+                if (PhantomAvatar.expressionsMenu != null)
+                {
+                    PhantomAvatarMAMenuInstaller.menuToAppend = CopyExpressionMenuRecursively(PhantomAvatar.expressionsMenu, $"{GeneratedMenuFolder}/{BaseAvatar.name}");
+                    PhantomAvatarMAMenuInstaller.installTargetMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(PhantomMenuPath);
+                }
+            }
+        }
+
+        private void SetupGrabRoot(SetupContext ctx, SetupAnimation anim)
+        {
             GameObject GrabPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(GrabPrefabPath);
-            GameObject GrabRoot = (GameObject)PrefabUtility.InstantiatePrefab(GrabPrefab, PhantomSystem.transform);
+            GameObject GrabRoot = (GameObject)PrefabUtility.InstantiatePrefab(GrabPrefab, ctx.PhantomSystem.transform);
             GrabRoot.name = "GrabRoot";
-            // Set MA Bone Proxy for GrabRoot
+
             ModularAvatarBoneProxy GrabRootMA = GrabRoot.GetComponent<ModularAvatarBoneProxy>();
-            GrabRootMA.subPath = GetRelativePath(PhantomArmature,BaseAvatar.transform);
-            // Set Constraints for GrabRoot
+            GrabRootMA.subPath = GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform);
+
             var GrabRootConstraint = GrabRoot.GetComponentInChildren<VRCParentConstraint>();
             GrabRootConstraint.Sources = new VRCConstraintSourceKeyableList
             {
                 new VRCConstraintSource
                 {
-                    SourceTransform = PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips),
+                    SourceTransform = ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips),
                     Weight = 1f
                 }
             };
-            // Add Constraints for Phantom Avatar's Hips to follow GrabRoot when grabbed
-            var PhantomHipsPositionConstraint = PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips).gameObject.AddComponent<VRCPositionConstraint>();
+
+            var PhantomHipsPositionConstraint = ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips).gameObject.AddComponent<VRCPositionConstraint>();
             PhantomHipsPositionConstraint.Sources = new VRCConstraintSourceKeyableList
             {
                 new VRCConstraintSource
@@ -705,58 +709,35 @@ namespace MPCCT
                     Weight = 1f
                 }
             };
-            // Create Animation Clip for GrabRoot
-            var GrabOn = new AnimationClip();
-            var GrabOff = new AnimationClip();
-            var GrabPrepare = new AnimationClip();
+
+            // Add keyframes to the Animation Clips
             // GrabOn: Disable Hips Parent Constraint
-            GrabOn.SetCurve(GetRelativePath(PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
+            anim.GrabOn.SetCurve(GetRelativePath(ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
             // GrabOn: Enable Hips Position Constraint
-            GrabOn.SetCurve(GetRelativePath(PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform), typeof(VRCPositionConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+            anim.GrabOn.SetCurve(GetRelativePath(ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform), typeof(VRCPositionConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
             // GrabOn: Disable GrabRoot Constraint
-            GrabOn.SetCurve(GetRelativePath(GrabRootConstraint.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
+            anim.GrabOn.SetCurve(GetRelativePath(GrabRootConstraint.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
 
             // GrabOff: Enable Hips Parent Constraint
-            GrabOff.SetCurve(GetRelativePath(PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+            anim.GrabOff.SetCurve(GetRelativePath(ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
             // GrabOff: Disable Hips Position Constraint
-            GrabOff.SetCurve(GetRelativePath(PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform), typeof(VRCPositionConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
+            anim.GrabOff.SetCurve(GetRelativePath(ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform), typeof(VRCPositionConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
             // GrabOff: Enable GrabRoot Constraint
-            GrabOff.SetCurve(GetRelativePath(GrabRootConstraint.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+            anim.GrabOff.SetCurve(GetRelativePath(GrabRootConstraint.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+        }
 
-            // delete existing Grab Animation Clips
-            AssetDatabase.DeleteAsset($"{GeneratedAnimationFolder}/{BaseAvatar.name}/GrabOn.anim");
-            AssetDatabase.DeleteAsset($"{GeneratedAnimationFolder}/{BaseAvatar.name}/GrabOff.anim");
-            // save Grab Animation Clips
-            AssetDatabase.CreateAsset(GrabOn, $"{GeneratedAnimationFolder}/{BaseAvatar.name}/GrabOn.anim");
-            AssetDatabase.CreateAsset(GrabOff, $"{GeneratedAnimationFolder}/{BaseAvatar.name}/GrabOff.anim");
-
-            // change controller's Grab animation clips
-            var GrabStateMachine = PhantomController.layers[2].stateMachine;
-            foreach (var state in GrabStateMachine.states)
+        private void ChangePhysBoneImmobileType(SetupContext ctx)
+        {
+            var PhantomPhysBones = ctx.PhantomAvatarRoot.GetComponentsInChildren<VRCPhysBone>(true);
+            foreach (var PB in PhantomPhysBones)
             {
-                if (state.state.name == "GrabOn")
-                {
-                    state.state.motion = GrabOn;
-                }
-                else if (state.state.name == "GrabOff")
-                {
-                    state.state.motion = GrabOff;
-                }
+                PB.immobileType = VRCPhysBoneBase.ImmobileType.AllMotion;
             }
-            EditorUtility.SetDirty(PhantomController);
+        }
 
-            // Change PhysBone ImmobileType
-            var PhantomPhysBones = PhantomAvatarRoot.GetComponentsInChildren<VRCPhysBone>(true);
-            if (IsChangePBImmobileType)
-            {
-                foreach (var PB in PhantomPhysBones)
-                {
-                    PB.immobileType = VRCPhysBoneBase.ImmobileType.AllMotion;
-                }
-            }
-
-            // Remove Phantom Avatar's existing components on root
-            UnityEngine.Component[] PhantomAvatarOldComponents = PhantomAvatarRoot.GetComponents<UnityEngine.Component>();
+        private void DeletePhantomAvatarRootComponents(SetupContext ctx)
+        {
+            UnityEngine.Component[] PhantomAvatarOldComponents = ctx.PhantomAvatarRoot.GetComponents<UnityEngine.Component>();
             foreach (var component in PhantomAvatarOldComponents)
             {
                 if (!(component is Transform || component is ModularAvatarMeshSettings))
@@ -764,8 +745,8 @@ namespace MPCCT
                     DestroyImmediate(component);
                 }
             }
-
         }
+
         private static string GetRelativePath(Transform target, Transform root)
         {
             if (target == root)
