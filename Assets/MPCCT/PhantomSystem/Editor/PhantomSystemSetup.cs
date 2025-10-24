@@ -151,7 +151,7 @@ namespace MPCCT
                 // validation reference controller
                 if (!(PhantomController != null && PhantomController.layers.Length > 2))
                 {
-                    new InvalidOperationException("Invalid Reference Animator Controller");
+                   throw new InvalidOperationException("[PhantomSystem] Invalid Reference Animator Controller");
                 }
 
                 var MainStateMachine = PhantomController.layers[1].stateMachine;
@@ -194,7 +194,7 @@ namespace MPCCT
         private void OnGUI()
         {
             // Title
-            EditorGUILayout.LabelField("PhantomSystem v0.2.0-alpha Made By MPCCT");
+            EditorGUILayout.LabelField("PhantomSystem v0.2.1-alpha Made By MPCCT");
 
             // Language selection
             string[] localeOptions = new[] { "English", "中文", "日本語" };
@@ -265,7 +265,7 @@ namespace MPCCT
             BaseAvatar.gameObject.SetActive(true);
             PhantomAvatar.gameObject.SetActive(false);
 
-            Debug.Log($"[PhantomSystem]Setting up Phantom System for {BaseAvatar.name} using {PhantomAvatar.name} ...");
+            Debug.Log($"[PhantomSystem] Setting up Phantom System for {BaseAvatar.name} using {PhantomAvatar.name} ...");
 
             DeleteExistingPhantomSystem();
             PhantomSystemInit(ctx);
