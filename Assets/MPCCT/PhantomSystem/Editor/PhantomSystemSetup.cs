@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -37,10 +36,11 @@ namespace MPCCT
 
         private const string GeneratedAnimationFolder = "Assets/MPCCT/PhantomSystem/~Generated/Animation";
         private const string GeneratedMenuFolder = "Assets/MPCCT/PhantomSystem/~Generated/Menu";
+        private const string GeneratedTempPrefabFolder = "Assets/MPCCT/PhantomSystem/~Generated";
 
         private bool showAdvanced = false;
 
-        private HashSet<string> SavedMenuName = new HashSet<string>();
+        private HashSet<string> SavedMenuGUID = new HashSet<string>();
 
         // --- Localization ---
         private enum Locale { English = 0, Chinese = 1, Japanese = 2 }
@@ -105,6 +105,7 @@ namespace MPCCT
             public Transform PhantomArmature;
             public Transform BaseArmature;
             public Dictionary<HumanBodyBones, string> PhantomBonePaths = new Dictionary<HumanBodyBones, string>();
+            public string PhantomAmaturePath;
         }
 
         // Class to hold animation clips and controller
@@ -252,7 +253,7 @@ namespace MPCCT
 
         private void Setup()
         {
-            SavedMenuName.Clear();
+            SavedMenuGUID.Clear();
             var ctx = new SetupContext();
             var anim = new SetupAnimation();
 
@@ -310,7 +311,19 @@ namespace MPCCT
             ctx.PhantomSystem = new GameObject("PhantomSystem");
             ctx.PhantomSystem.transform.parent = BaseAvatar.transform;
 
-            ctx.PhantomAvatarRoot = Instantiate(PhantomAvatar.gameObject, ctx.PhantomSystem.transform);
+            // Instantiate Phantom Avatar as a temporary prefab to keep prefab connection
+            GameObject tempPrefab = null;
+            string tempPrefabName = $"{PhantomAvatar.name}_tempPrefab_{PhantomAvatar.GetInstanceID()}.prefab";
+            tempPrefab = PrefabUtility.SaveAsPrefabAsset(PhantomAvatar.gameObject, $"{GeneratedTempPrefabFolder}/{tempPrefabName}");
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            var instanceAvatar = PrefabUtility.InstantiatePrefab(tempPrefab, ctx.PhantomSystem.transform) as GameObject;
+            ctx.PhantomAvatarRoot = instanceAvatar;
+            PrefabUtility.UnpackPrefabInstance(instanceAvatar, PrefabUnpackMode.OutermostRoot, InteractionMode.AutomatedAction);
+            AssetDatabase.DeleteAsset($"{GeneratedTempPrefabFolder}/{tempPrefabName}");
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
             ctx.PhantomAvatarRoot.transform.position = BaseAvatar.transform.position;
             ctx.PhantomAvatarRoot.transform.rotation = BaseAvatar.transform.rotation;
 
@@ -324,6 +337,7 @@ namespace MPCCT
             ctx.BaseArmature = ctx.BaseAnimator.GetBoneTransform(HumanBodyBones.Hips).parent;
 
             // Change the Phantom Avatar Armature's name
+            ctx.PhantomAmaturePath = GetRelativePath(ctx.PhantomArmature, ctx.PhantomAvatarRoot.transform);
             ctx.PhantomArmature.name = "Armature_phantom";
             var ArmatureConstraint = ctx.PhantomArmature.gameObject.AddComponent<VRCParentConstraint>();
             ArmatureConstraint.Locked = true;
@@ -436,8 +450,17 @@ namespace MPCCT
         private void AdaptModularAvatar(SetupContext ctx)
         {
             var MABoneProxy = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarBoneProxy>(true);
+
+            var MAMaterialSetter = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMaterialSetter>(true);
+            var MAMaterialSwap = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMaterialSwap>(true);
+            var MAObjectToogle = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarObjectToggle>(true);
+            var MAShapeChanger = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarShapeChanger>(true);
+            var MAMeshCutter = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMeshCutter>(true);
+
+            var MABlendshapeSync = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarBlendshapeSync>(true);
             var MAMergeArmature = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMergeArmature>(true);
             var MAMeshSettings = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMeshSettings>(true);
+            var MAReplaceObject = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarReplaceObject>(true);
 
             var MAInstaller = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMenuInstaller>(true);
             var MAMenuItems = ctx.PhantomAvatarRoot.GetComponentsInChildren<ModularAvatarMenuItem>(true);
@@ -460,32 +483,79 @@ namespace MPCCT
                 }
             }
 
+            // MA blendshape sync adaption
+            foreach (var sync in MABlendshapeSync)
+            {
+                BlendshapeBinding[] newBindings = new BlendshapeBinding[sync.Bindings.Count];
+                for (int i = 0; i < sync.Bindings.Count; i++)
+                {
+                    BlendshapeBinding tempBind = new BlendshapeBinding();
+                    tempBind.LocalBlendshape = sync.Bindings[i].LocalBlendshape;
+                    tempBind.Blendshape = sync.Bindings[i].Blendshape;
+                    tempBind.ReferenceMesh = RebaseAvatarObjectReference(ctx, sync.Bindings[i].ReferenceMesh);
+                    newBindings[i] = tempBind;
+                }
+                sync.Bindings = newBindings.ToList();
+            }
+
+            // MA material setter adaption
+            foreach (var setter in MAMaterialSetter)
+            {
+                MaterialSwitchObject[] newObjs = new MaterialSwitchObject[setter.Objects.Count];
+                for (int i = 0; i < setter.Objects.Count; i++)
+                {
+                    MaterialSwitchObject tempObj = new MaterialSwitchObject();
+                    tempObj.Material = setter.Objects[i].Material;
+                    tempObj.MaterialIndex = setter.Objects[i].MaterialIndex;
+                    tempObj.Object = RebaseAvatarObjectReference(ctx, setter.Objects[i].Object);
+                    newObjs[i] = tempObj;
+                }
+                setter.Objects = newObjs.ToList();
+            }
+
+            // MA material swap adaption
+            foreach (var swap in MAMaterialSwap)
+            {
+                swap.Root = RebaseAvatarObjectReference(ctx, swap.Root);
+            }
+
+            // MA object toggle adaption
+            foreach (var toggle in MAObjectToogle)
+            {
+                ToggledObject[] newToggles = new ToggledObject[toggle.Objects.Count];
+                for (int i = 0; i < toggle.Objects.Count; i++)
+                {
+                    ToggledObject tempObj = new ToggledObject();
+                    tempObj.Active = toggle.Objects[i].Active;
+                    tempObj.Object = RebaseAvatarObjectReference(ctx, toggle.Objects[i].Object);
+                    newToggles[i] = tempObj;
+                }
+                toggle.Objects = newToggles.ToList();
+            }
+
+            // MA mesh cutter adaption
+            foreach (var cutter in MAMeshCutter)
+            {
+                cutter.Object = RebaseAvatarObjectReference(ctx, cutter.Object);
+            }
+
             // MA merge armature adaption
             foreach (var armature in MAMergeArmature)
             {
-                if (armature.mergeTarget.referencePath == ctx.BaseArmature.name)
-                {
-                    AvatarObjectReference tempRelativePathRoot = new AvatarObjectReference();
-                    tempRelativePathRoot.Set(ctx.PhantomArmature.gameObject);
-                    armature.mergeTarget = tempRelativePathRoot;
-                }
+                armature.mergeTarget = RebaseAvatarObjectReference(ctx, armature.mergeTarget);
             }
 
             // MA mesh settings adaption
             foreach (var setting in MAMeshSettings)
             {
-                var BaseHipPath = GetRelativePath(ctx.BaseAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform);
-                var PhantomHip = ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips).gameObject;
-                AvatarObjectReference tempRelativePathRoot = new AvatarObjectReference();
-                tempRelativePathRoot.Set(PhantomHip);
-                if (setting.ProbeAnchor.referencePath == BaseHipPath)
-                {
-                    setting.ProbeAnchor = tempRelativePathRoot;
-                }
-                if (setting.RootBone.referencePath == BaseHipPath)
-                {
-                    setting.RootBone = tempRelativePathRoot;
-                }
+                setting.ProbeAnchor = RebaseAvatarObjectReference(ctx, setting.ProbeAnchor);
+                setting.RootBone = RebaseAvatarObjectReference(ctx, setting.RootBone);
+            }
+
+            // MA replace object adaption
+            foreach (var replace in MAReplaceObject)
+            {
+                replace.targetObject = RebaseAvatarObjectReference(ctx, replace.targetObject);
             }
 
             if (IsRemovePhantomAvatarMA)
@@ -691,6 +761,8 @@ namespace MPCCT
             GrabRootMA.subPath = GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform);
 
             var GrabRootConstraint = GrabRoot.GetComponentInChildren<VRCParentConstraint>();
+            GrabRootConstraint.Locked = true;
+            GrabRootConstraint.IsActive = true;
             GrabRootConstraint.Sources = new VRCConstraintSourceKeyableList
             {
                 new VRCConstraintSource
@@ -699,8 +771,11 @@ namespace MPCCT
                     Weight = 1f
                 }
             };
+            GrabRootConstraint.enabled = true;
 
             var PhantomHipsPositionConstraint = ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips).gameObject.AddComponent<VRCPositionConstraint>();
+            PhantomHipsPositionConstraint.Locked = true;
+            PhantomHipsPositionConstraint.IsActive = false;
             PhantomHipsPositionConstraint.Sources = new VRCConstraintSourceKeyableList
             {
                 new VRCConstraintSource
@@ -709,6 +784,7 @@ namespace MPCCT
                     Weight = 1f
                 }
             };
+            PhantomHipsPositionConstraint.enabled = true;
 
             // Add keyframes to the Animation Clips
             // GrabOn: Disable Hips Parent Constraint
@@ -811,11 +887,11 @@ namespace MPCCT
             var guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(sourceMenu));
             string MenuRename = $"{sourceMenu.name}_{guid[..8]}";
             // skip already copied menu
-            if (SavedMenuName.Contains(MenuRename))
+            if (SavedMenuGUID.Contains(guid))
             {
                 return AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>($"{path}/{MenuRename}.asset");
             }
-            SavedMenuName.Add(MenuRename);
+            SavedMenuGUID.Add(guid);
 
             // copy menu
             AssetDatabase.CopyAsset(AssetDatabase.GetAssetPath(sourceMenu), $"{path}/{MenuRename}.asset");
@@ -828,13 +904,37 @@ namespace MPCCT
                 var c = controls[i];
                 if (c != null && c.type == VRCExpressionsMenu.Control.ControlType.SubMenu && c.subMenu != null)
                 {
-                    c.subMenu = CopyExpressionMenuRecursively(c.subMenu, path);
+                    var newSubMenu = CopyExpressionMenuRecursively(c.subMenu, path);
+                    c.subMenu = newSubMenu;
                     controls[i] = c; // write back
                 }
             }
             EditorUtility.SetDirty(copiedMenu);
             AssetDatabase.SaveAssetIfDirty(copiedMenu);
             return copiedMenu;
+        }
+
+        private AvatarObjectReference RebaseAvatarObjectReference(SetupContext ctx, AvatarObjectReference obj)
+        {
+            string newPath;
+            AvatarObjectReference newObj = new AvatarObjectReference();
+
+            if (!obj.referencePath.StartsWith("PhantomSystem/PhantomAvatar/"))
+            {
+                newPath = obj.referencePath;
+                if (obj.referencePath.StartsWith(ctx.PhantomAmaturePath))
+                {
+                    var NewArmaturePath = GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform);
+                    newPath = NewArmaturePath + newPath.Substring(ctx.PhantomAmaturePath.Length);
+                }
+                else
+                {
+                    newPath = "PhantomSystem/PhantomAvatar/" + newPath;
+                }
+                newObj.Set(BaseAvatar.transform.Find(newPath).gameObject);
+                return newObj;
+            }
+            return obj;
         }
     }
 }
