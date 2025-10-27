@@ -314,6 +314,13 @@ namespace MPCCT
             // Instantiate Phantom Avatar as a temporary prefab to keep prefab connection
             GameObject tempPrefab = null;
             string tempPrefabName = $"{PhantomAvatar.name}_tempPrefab_{PhantomAvatar.GetInstanceID()}.prefab";
+
+            // create folder if not exists
+            if (!Directory.Exists(GeneratedTempPrefabFolder))
+            {
+                Directory.CreateDirectory(GeneratedTempPrefabFolder);
+            }
+
             tempPrefab = PrefabUtility.SaveAsPrefabAsset(PhantomAvatar.gameObject, $"{GeneratedTempPrefabFolder}/{tempPrefabName}");
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
