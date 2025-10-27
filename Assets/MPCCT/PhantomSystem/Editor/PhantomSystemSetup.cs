@@ -487,7 +487,12 @@ namespace MPCCT
                 {
                     proxy.subPath = ctx.PhantomBonePaths[proxy.boneReference];
                     proxy.boneReference = HumanBodyBones.LastBone;
+                    Debug.Log($"[PhantomSystem] Adapted MA Bone Proxy at {GetRelativePath(proxy.transform, ctx.PhantomAvatarRoot.transform)} to use path {proxy.subPath}");
                 }
+
+                EditorUtility.SetDirty(proxy);
+                if (PrefabUtility.IsPartOfPrefabInstance(proxy))
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(proxy);
             }
 
             // MA blendshape sync adaption
@@ -503,6 +508,10 @@ namespace MPCCT
                     newBindings[i] = tempBind;
                 }
                 sync.Bindings = newBindings.ToList();
+
+                EditorUtility.SetDirty(sync);
+                if (PrefabUtility.IsPartOfPrefabInstance(sync))
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(sync);
             }
 
             // MA material setter adaption
@@ -518,12 +527,20 @@ namespace MPCCT
                     newObjs[i] = tempObj;
                 }
                 setter.Objects = newObjs.ToList();
+
+                EditorUtility.SetDirty(setter);
+                if (PrefabUtility.IsPartOfPrefabInstance(setter))
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(setter);
             }
 
             // MA material swap adaption
             foreach (var swap in MAMaterialSwap)
             {
                 swap.Root = RebaseAvatarObjectReference(ctx, swap.Root);
+
+                EditorUtility.SetDirty(swap);
+                if (PrefabUtility.IsPartOfPrefabInstance(swap))
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(swap);
             }
 
             // MA object toggle adaption
@@ -538,18 +555,30 @@ namespace MPCCT
                     newToggles[i] = tempObj;
                 }
                 toggle.Objects = newToggles.ToList();
+
+                EditorUtility.SetDirty(toggle);
+                if (PrefabUtility.IsPartOfPrefabInstance(toggle))
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(toggle);
             }
 
             // MA mesh cutter adaption
             foreach (var cutter in MAMeshCutter)
             {
                 cutter.Object = RebaseAvatarObjectReference(ctx, cutter.Object);
+
+                EditorUtility.SetDirty(cutter);
+                if (PrefabUtility.IsPartOfPrefabInstance(cutter))
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(cutter);
             }
 
             // MA merge armature adaption
             foreach (var armature in MAMergeArmature)
             {
                 armature.mergeTarget = RebaseAvatarObjectReference(ctx, armature.mergeTarget);
+
+                EditorUtility.SetDirty(armature);
+                if (PrefabUtility.IsPartOfPrefabInstance(armature))
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(armature);
             }
 
             // MA mesh settings adaption
@@ -557,12 +586,20 @@ namespace MPCCT
             {
                 setting.ProbeAnchor = RebaseAvatarObjectReference(ctx, setting.ProbeAnchor);
                 setting.RootBone = RebaseAvatarObjectReference(ctx, setting.RootBone);
+
+                EditorUtility.SetDirty(setting);
+                if (PrefabUtility.IsPartOfPrefabInstance(setting))
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(setting);
             }
 
             // MA replace object adaption
             foreach (var replace in MAReplaceObject)
             {
                 replace.targetObject = RebaseAvatarObjectReference(ctx, replace.targetObject);
+
+                EditorUtility.SetDirty(replace);
+                if (PrefabUtility.IsPartOfPrefabInstance(replace))
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(replace);
             }
 
             if (IsRemovePhantomAvatarMA)
@@ -598,6 +635,10 @@ namespace MPCCT
                     {
                         installer.menuToAppend = CopyExpressionMenuRecursively(installer.menuToAppend, $"{GeneratedMenuFolder}/{BaseAvatar.name}");
                     }
+
+                    EditorUtility.SetDirty(installer);
+                    if (PrefabUtility.IsPartOfPrefabInstance(installer))
+                        PrefabUtility.RecordPrefabInstancePropertyModifications(installer);
                 }
 
                 foreach (var item in MAMenuItems)
@@ -612,6 +653,10 @@ namespace MPCCT
                         p.name = "PhantomSystemRename_" + p.name;
                         item.Control.parameter = p;
                     }
+
+                    EditorUtility.SetDirty(item);
+                    if (PrefabUtility.IsPartOfPrefabInstance(item))
+                        PrefabUtility.RecordPrefabInstancePropertyModifications(item);
                 }
 
                 foreach (var animator in MAMergeAnimator)
@@ -623,6 +668,10 @@ namespace MPCCT
                         tempRelativePathRoot.Set(ctx.PhantomAvatarRoot);
                         animator.relativePathRoot = tempRelativePathRoot;
                     }
+
+                    EditorUtility.SetDirty(animator);
+                    if (PrefabUtility.IsPartOfPrefabInstance(animator))
+                        PrefabUtility.RecordPrefabInstancePropertyModifications(animator);
                 }
 
                 if (IsRenameParameters)
@@ -635,9 +684,16 @@ namespace MPCCT
                             p.remapTo = "PhantomSystemRename_" + p.nameOrPrefix;
                             parameter.parameters[i] = p;
                         }
+
+                        EditorUtility.SetDirty(parameter);
+                        if (PrefabUtility.IsPartOfPrefabInstance(parameter))
+                            PrefabUtility.RecordPrefabInstancePropertyModifications(parameter);
                     }
                 }
             }
+
+            UnityEditor.SceneManagement.EditorSceneManager.MarkAllScenesDirty();
+            AssetDatabase.SaveAssets();
         }
 
         private void AddMAPrefab(SetupContext ctx, SetupAnimation anim)
@@ -686,14 +742,6 @@ namespace MPCCT
             PhantomAvatarViewPoint.transform.rotation = ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Head).rotation;
 
             ModularAvatarBoneProxy PhantomViewPointProxy = PhantomAvatarViewPoint.GetComponent<ModularAvatarBoneProxy>();
-            if (ctx.PhantomBonePaths.TryGetValue(HumanBodyBones.Head, out var headPath))
-            {
-                PhantomViewPointProxy.subPath = headPath;
-            }
-            else
-            {
-                Debug.LogWarning("[PhantomSystem] Phantom head bone missing, skipping viewpoint proxy subPath assignment.");
-            }
 
             switch (currentLocale)
             {
