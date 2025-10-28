@@ -312,7 +312,7 @@ namespace MPCCT
             ctx.PhantomSystem.transform.parent = BaseAvatar.transform;
 
             // Instantiate Phantom Avatar as a temporary prefab to keep prefab connection
-            GameObject tempPrefab = null;
+            GameObject tempPrefab;
             string tempPrefabName = $"{PhantomAvatar.name}_tempPrefab_{PhantomAvatar.GetInstanceID()}.prefab";
 
             // create folder if not exists
@@ -487,7 +487,6 @@ namespace MPCCT
                 {
                     proxy.subPath = ctx.PhantomBonePaths[proxy.boneReference];
                     proxy.boneReference = HumanBodyBones.LastBone;
-                    Debug.Log($"[PhantomSystem] Adapted MA Bone Proxy at {GetRelativePath(proxy.transform, ctx.PhantomAvatarRoot.transform)} to use path {proxy.subPath}");
                 }
 
                 EditorUtility.SetDirty(proxy);
@@ -559,6 +558,26 @@ namespace MPCCT
                 EditorUtility.SetDirty(toggle);
                 if (PrefabUtility.IsPartOfPrefabInstance(toggle))
                     PrefabUtility.RecordPrefabInstancePropertyModifications(toggle);
+            }
+
+            // MA shape changer adaption
+            foreach (var changer in MAShapeChanger)
+            {
+                ChangedShape[] newShapes = new ChangedShape[changer.Shapes.Count];
+                for (int i = 0; i < changer.Shapes.Count; i++)
+                {
+                    ChangedShape tempShape = new ChangedShape();
+                    tempShape.ShapeName = changer.Shapes[i].ShapeName;
+                    tempShape.ChangeType = changer.Shapes[i].ChangeType;
+                    tempShape.Value = changer.Shapes[i].Value;
+                    tempShape.Object = RebaseAvatarObjectReference(ctx, changer.Shapes[i].Object);
+                    newShapes[i] = tempShape;
+                }
+                changer.Shapes = newShapes.ToList();
+
+                EditorUtility.SetDirty(changer);
+                if (PrefabUtility.IsPartOfPrefabInstance(changer))
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(changer);
             }
 
             // MA mesh cutter adaption
@@ -741,7 +760,9 @@ namespace MPCCT
             PhantomAvatarViewPoint.transform.position = PhantomAvatar.ViewPosition;
             PhantomAvatarViewPoint.transform.rotation = ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Head).rotation;
 
-            ModularAvatarBoneProxy PhantomViewPointProxy = PhantomAvatarViewPoint.GetComponent<ModularAvatarBoneProxy>();
+            ModularAvatarBoneProxy PhantomAvatarViewPointMA = PhantomAvatarViewPoint.GetComponent<ModularAvatarBoneProxy>();
+            PhantomAvatarViewPointMA.subPath = ctx.PhantomBonePaths[HumanBodyBones.Head];
+            PhantomAvatarViewPointMA.boneReference = HumanBodyBones.LastBone;
 
             switch (currentLocale)
             {
