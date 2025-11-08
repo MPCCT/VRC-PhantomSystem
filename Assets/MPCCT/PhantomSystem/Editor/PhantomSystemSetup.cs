@@ -152,7 +152,7 @@ namespace MPCCT
                 // validation reference controller
                 if (!(PhantomController != null && PhantomController.layers.Length > 2))
                 {
-                   throw new InvalidOperationException("[PhantomSystem] Invalid Reference Animator Controller");
+                   throw new InvalidOperationException("[PhantomSystem] Invalid Reference Animator Controller, PhantomSystem may broken.");
                 }
 
                 var MainStateMachine = PhantomController.layers[1].stateMachine;
@@ -195,7 +195,7 @@ namespace MPCCT
         private void OnGUI()
         {
             // Title
-            EditorGUILayout.LabelField("PhantomSystem v0.2.1-alpha Made By MPCCT");
+            EditorGUILayout.LabelField("PhantomSystem v0.2.4-alpha Made By MPCCT");
 
             // Language selection
             string[] localeOptions = new[] { "English", "中文", "日本語" };
@@ -968,6 +968,13 @@ namespace MPCCT
                 return AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>($"{path}/{MenuRename}.asset");
             }
             SavedMenuGUID.Add(guid);
+
+            // Check if it's a subAsset
+            if (AssetDatabase.IsSubAsset(sourceMenu))
+            {
+                Debug.LogWarning($"[Phantom System] The menu '{sourceMenu.name}' is a sub-asset. PhanotmSystem will not copy it.");
+                return sourceMenu;
+            }
 
             // copy menu
             AssetDatabase.CopyAsset(AssetDatabase.GetAssetPath(sourceMenu), $"{path}/{MenuRename}.asset");
