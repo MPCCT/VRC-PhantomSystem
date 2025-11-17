@@ -118,6 +118,9 @@ namespace MPCCT
             public AnimationClip PhantomFreeze = new AnimationClip();
             public AnimationClip GrabOn = new AnimationClip();
             public AnimationClip GrabOff = new AnimationClip();
+            public AnimationClip PositionLockOn = new AnimationClip();
+            public AnimationClip PositionLockOff = new AnimationClip();
+            public AnimationClip PositionLockPrepare = new AnimationClip();
 
             public void Save(string animFolderForAvatar, string referenceAnimationPath)
             {
@@ -135,6 +138,9 @@ namespace MPCCT
                 AssetDatabase.DeleteAsset($"{animFolderForAvatar}/GrabOn.anim");
                 AssetDatabase.DeleteAsset($"{animFolderForAvatar}/GrabOff.anim");
                 AssetDatabase.DeleteAsset($"{animFolderForAvatar}/PhantomSystem_FX.controller");
+                AssetDatabase.DeleteAsset($"{animFolderForAvatar}/PositionLockOn.anim");
+                AssetDatabase.DeleteAsset($"{animFolderForAvatar}/PositionLockOff.anim");
+                AssetDatabase.DeleteAsset($"{animFolderForAvatar}/PositionLockPrepare.anim");
 
 
                 // create assets
@@ -144,19 +150,23 @@ namespace MPCCT
                 AssetDatabase.CreateAsset(PhantomFreeze, $"{animFolderForAvatar}/PhantomFreeze.anim");
                 AssetDatabase.CreateAsset(GrabOn, $"{animFolderForAvatar}/GrabOn.anim");
                 AssetDatabase.CreateAsset(GrabOff, $"{animFolderForAvatar}/GrabOff.anim");
+                AssetDatabase.CreateAsset(PositionLockOn, $"{animFolderForAvatar}/PositionLockOn.anim");
+                AssetDatabase.CreateAsset(PositionLockOff, $"{animFolderForAvatar}/PositionLockOff.anim");
+                AssetDatabase.CreateAsset(PositionLockPrepare, $"{animFolderForAvatar}/PositionLockPrepare.anim");
 
                 // copy reference controller and replace states
                 AssetDatabase.CopyAsset(referenceAnimationPath, $"{animFolderForAvatar}/PhantomSystem_FX.controller");
                 PhantomController = AssetDatabase.LoadAssetAtPath<AnimatorController>($"{animFolderForAvatar}/PhantomSystem_FX.controller");
 
                 // validation reference controller
-                if (!(PhantomController != null && PhantomController.layers.Length > 2))
+                if (!(PhantomController != null && PhantomController.layers.Length > 3))
                 {
                    throw new InvalidOperationException("[PhantomSystem] Invalid Reference Animator Controller, PhantomSystem may broken.");
                 }
 
                 var MainStateMachine = PhantomController.layers[1].stateMachine;
-                var GrabStateMachine = PhantomController.layers[2].stateMachine;
+                var PositionLockStateMachine = PhantomController.layers[2].stateMachine;
+                var GrabStateMachine = PhantomController.layers[3].stateMachine;
 
                 foreach (var state in MainStateMachine.states)
                 {
@@ -166,6 +176,13 @@ namespace MPCCT
                     else if (state.state.name == "PhantomFreeze") state.state.motion = PhantomFreeze;
                 }
                 
+                foreach (var state in PositionLockStateMachine.states)
+                {
+                    if (state.state.name == "PositionLockOn") state.state.motion = PositionLockOn;
+                    else if (state.state.name == "PositionLockOff") state.state.motion = PositionLockOff;
+                    else if (state.state.name == "PositionLockPrepare") state.state.motion = PositionLockPrepare;
+                }
+
                 foreach (var state in GrabStateMachine.states)
                 {
                     if (state.state.name == "GrabOn") state.state.motion = GrabOn;
@@ -343,13 +360,20 @@ namespace MPCCT
             ctx.PhantomArmature = ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips).parent;
             ctx.BaseArmature = ctx.BaseAnimator.GetBoneTransform(HumanBodyBones.Hips).parent;
 
+            GameObject BaseAvatarPosition = new GameObject("BaseAvatarPosition");
+            BaseAvatarPosition.transform.parent = ctx.PhantomSystem.transform;
+            GameObject ArmatureConstraintTarget = new GameObject("AmatureConstraintTarget");
+            ArmatureConstraintTarget.transform.parent = BaseAvatarPosition.transform;
+
             // Change the Phantom Avatar Armature's name
             ctx.PhantomAmaturePath = GetRelativePath(ctx.PhantomArmature, ctx.PhantomAvatarRoot.transform);
             ctx.PhantomArmature.name = "Armature_phantom";
-            var ArmatureConstraint = ctx.PhantomArmature.gameObject.AddComponent<VRCParentConstraint>();
-            ArmatureConstraint.Locked = true;
-            ArmatureConstraint.IsActive = false;
-            ArmatureConstraint.Sources = new VRCConstraintSourceKeyableList
+
+            // Add constraint to BaseAvatarPosition
+            var BaseAvatarPositionConstraint = BaseAvatarPosition.AddComponent<VRCParentConstraint>();
+            BaseAvatarPositionConstraint.Locked = true;
+            BaseAvatarPositionConstraint.IsActive = true;
+            BaseAvatarPositionConstraint.Sources = new VRCConstraintSourceKeyableList
             {
                 new VRCConstraintSource
                 {
@@ -357,32 +381,110 @@ namespace MPCCT
                     Weight = 1f
                 }
             };
+            BaseAvatarPositionConstraint.enabled = true;
+            BaseAvatarPositionConstraint.FreezeToWorld = false;
+
+            // Add constraint to AmatureConstraintTarget
+            var ArmatureTargetConstraint = ArmatureConstraintTarget.AddComponent<VRCParentConstraint>();
+            ArmatureTargetConstraint.Locked = true;
+            ArmatureTargetConstraint.IsActive = true;
+            ArmatureTargetConstraint.Sources = new VRCConstraintSourceKeyableList
+            {
+                new VRCConstraintSource
+                {
+                    SourceTransform = ctx.BaseArmature,
+                    Weight = 1f
+                }
+            };
+            BaseAvatarPositionConstraint.enabled = true;
+
+            // Add constraint to PhantomAvatarRoot
+            var PhantomAvatarConstraint = ctx.PhantomAvatarRoot.AddComponent<VRCParentConstraint>();
+            PhantomAvatarConstraint.Locked = true;
+            PhantomAvatarConstraint.IsActive = true;
+            PhantomAvatarConstraint.Sources = new VRCConstraintSourceKeyableList
+            {
+                new VRCConstraintSource
+                {
+                    SourceTransform = ctx.BaseArmature,
+                    Weight = 1f
+                },
+                new VRCConstraintSource
+                {
+                    SourceTransform = ctx.PhantomArmature,
+                    Weight = 0f
+                }
+            };
+            PhantomAvatarConstraint.enabled = true;
+            PhantomAvatarConstraint.FreezeToWorld = true;
+
+            // Add constraint to armature
+            var ArmatureConstraint = ctx.PhantomArmature.gameObject.AddComponent<VRCParentConstraint>();
+            ArmatureConstraint.Locked = true;
+            ArmatureConstraint.IsActive = true;
+            ArmatureConstraint.Sources = new VRCConstraintSourceKeyableList
+            {
+                new VRCConstraintSource
+                {
+                    SourceTransform = ArmatureConstraintTarget.transform,
+                    Weight = 1f
+                }
+            };
             ArmatureConstraint.enabled = true;
-            ArmatureConstraint.FreezeToWorld = true;
+            ArmatureConstraint.SolveInLocalSpace = true;
 
             // PhantomOFF: deactivate PhantomAvatar
             anim.PhantomOFF.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(GameObject), "m_IsActive", AnimationCurve.Constant(0, 0, 0));
-            // PhantomOFF: Armature constraint freeze to world; disable the constraint
-            anim.PhantomOFF.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
-            anim.PhantomOFF.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
+            // PhantomOFF: Root constraint freeze to world; disable the constraint
+            anim.PhantomOFF.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
+            anim.PhantomOFF.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
 
             // PhantomPrepare: activate PhantomAvatar
             anim.PhantomPrepare.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(GameObject), "m_IsActive", AnimationCurve.Constant(0, 0, 1));
-            // PhantomPrepare: Armature constraint unfreeze world; enable the constraint
-            anim.PhantomPrepare.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
-            anim.PhantomPrepare.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+            // PhantomPrepare: Root constraint unfreeze world; enable the constraint
+            anim.PhantomPrepare.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
+            anim.PhantomPrepare.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
 
             // PhantomFreezeOff: activate PhantomAvatar
             anim.PhantomFreezeOff.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(GameObject), "m_IsActive", AnimationCurve.Constant(0, 0, 1));
-            // PhantomFreezeOff: Armature constraint freeze world; enable the constraint
-            anim.PhantomFreezeOff.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
-            anim.PhantomFreezeOff.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+            // PhantomFreezeOff: Root constraint freeze world; enable the constraint
+            anim.PhantomFreezeOff.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
+            anim.PhantomFreezeOff.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
 
             // PhantomFreeze: activate PhantomAvatar
             anim.PhantomFreeze.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(GameObject), "m_IsActive", AnimationCurve.Constant(0, 0, 1));
-            // PhantomFreeze: Armature constraint freeze world; enable the constraint
-            anim.PhantomFreeze.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
-            anim.PhantomFreeze.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+            // PhantomFreeze: Root constraint freeze world; enable the constraint
+            anim.PhantomFreeze.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
+            anim.PhantomFreeze.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+
+            // PositionLockOn: BaseAvatarPosition constraint disable freeze to world
+            anim.PositionLockOn.SetCurve(GetRelativePath(BaseAvatarPosition.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
+            // PositionLockOn: Armature Constraint disable freeze to world
+            anim.PositionLockOn.SetCurve(GetRelativePath(ArmatureConstraintTarget.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
+            anim.PositionLockOn.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
+            // PositionLockOn: PahntomSystem constraint set to 1st source
+            anim.PositionLockOn.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "Sources.source0.Weight", AnimationCurve.Constant(0, 0, 1));
+            anim.PositionLockOn.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "Sources.source1.Weight", AnimationCurve.Constant(0, 0, 0));
+
+            // PositionLockOff: BaseAvatarPosition constraint freeze to world
+            anim.PositionLockOff.SetCurve(GetRelativePath(BaseAvatarPosition.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
+            // PositionLockOff: Armature Constraint disable freeze to world
+            anim.PositionLockOff.SetCurve(GetRelativePath(ArmatureConstraintTarget.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
+            anim.PositionLockOff.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
+            // PositionLockOff: PahntomSystem constraint set to 1st source
+            anim.PositionLockOff.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "Sources.source0.Weight", AnimationCurve.Constant(0, 0, 1));
+            anim.PositionLockOff.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "Sources.source1.Weight", AnimationCurve.Constant(0, 0, 0));
+
+            float dt = 1.0f / 60.0f;
+            // PositionLockPrepare: BaseAvatarPosition constraint and PhantomSystem constraint disable freeze to world
+            anim.PositionLockPrepare.SetCurve(GetRelativePath(BaseAvatarPosition.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(dt, dt, 0));
+            anim.PositionLockPrepare.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(dt, dt, 0));
+            // PositionLockPrepare: Armature Constraint freeze to world
+            anim.PositionLockPrepare.SetCurve(GetRelativePath(ArmatureConstraintTarget.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
+            anim.PositionLockPrepare.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
+            // PositionLockPrepare: PahntomSystem constraint set to 2nd source
+            anim.PositionLockPrepare.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "Sources.source0.Weight", AnimationCurve.Constant(0, 0, 0));
+            anim.PositionLockPrepare.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "Sources.source1.Weight", AnimationCurve.Constant(0, 0, 1));
         }
 
         private void SetupBoneConstraints(SetupContext ctx, SetupAnimation anim)
@@ -889,10 +991,17 @@ namespace MPCCT
 
         private void DeletePhantomAvatarRootComponents(SetupContext ctx)
         {
+            var ConmponentWhiteList = new Type[]
+            {
+                typeof(Transform),
+                typeof(VRCParentConstraint),
+                typeof(ModularAvatarMeshSettings)
+            };
             UnityEngine.Component[] PhantomAvatarOldComponents = ctx.PhantomAvatarRoot.GetComponents<UnityEngine.Component>();
             foreach (var component in PhantomAvatarOldComponents)
             {
-                if (!(component is Transform || component is ModularAvatarMeshSettings))
+                // check if the component is in the white list
+                if (!ConmponentWhiteList.Contains(component.GetType()))
                 {
                     DestroyImmediate(component);
                 }

@@ -16,11 +16,16 @@ MonoBehaviour:
   parameters:
   - name: PhantomActivate
     valueType: 2
-    saved: 1
+    saved: 0
     defaultValue: 0
     networkSynced: 1
   - name: PhantomFreeze
     valueType: 2
-    saved: 1
+    saved: 0
     defaultValue: 0
+    networkSynced: 1
+  - name: PhantomPositionLock
+    valueType: 2
+    saved: 0
+    defaultValue: 1
     networkSynced: 1

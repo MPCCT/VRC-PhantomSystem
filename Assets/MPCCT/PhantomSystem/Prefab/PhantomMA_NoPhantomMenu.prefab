@@ -86,8 +86,18 @@ MonoBehaviour:
     syncType: 3
     localOnly: 0
     defaultValue: 0
-    saved: 1
+    saved: 0
     hasExplicitDefaultValue: 0
+    m_overrideAnimatorDefaults: 0
+  - nameOrPrefix: PhantomPositionLock
+    remapTo: 
+    internalParameter: 0
+    isPrefix: 0
+    syncType: 3
+    localOnly: 0
+    defaultValue: 1
+    saved: 0
+    hasExplicitDefaultValue: 1
     m_overrideAnimatorDefaults: 0
 --- !u!114 &3435469020830268320
 MonoBehaviour:

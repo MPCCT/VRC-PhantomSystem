@@ -34,3 +34,13 @@ MonoBehaviour:
     subMenu: {fileID: 0}
     subParameters: []
     labels: []
+  - name: LockPosition
+    icon: {fileID: 0}
+    type: 102
+    parameter:
+      name: PhantomPositionLock
+    value: 1
+    style: 0
+    subMenu: {fileID: 0}
+    subParameters: []
+    labels: []

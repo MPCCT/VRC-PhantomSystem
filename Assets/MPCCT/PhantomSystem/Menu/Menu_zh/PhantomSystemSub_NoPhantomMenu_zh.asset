@@ -34,3 +34,13 @@ MonoBehaviour:
     subMenu: {fileID: 0}
     subParameters: []
     labels: []
+  - name: "\u56FA\u5B9A\u5206\u8EAB\u4F4D\u7F6E"
+    icon: {fileID: 0}
+    type: 102
+    parameter:
+      name: PhantomPositionLock
+    value: 1
+    style: 0
+    subMenu: {fileID: 0}
+    subParameters: []
+    labels: []

@@ -34,6 +34,16 @@ MonoBehaviour:
     subMenu: {fileID: 0}
     subParameters: []
     labels: []
+  - name: LockPosition
+    icon: {fileID: 0}
+    type: 102
+    parameter:
+      name: PhantomPositionLock
+    value: 1
+    style: 0
+    subMenu: {fileID: 11400000, guid: f7baeed80f640f847a0650eb267cb0fa, type: 2}
+    subParameters: []
+    labels: []
   - name: PhantomAvatarMenu
     icon: {fileID: 0}
     type: 103
