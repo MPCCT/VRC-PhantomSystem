@@ -6,10 +6,13 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
+using UnityEngine.Animations;
+using VRC.Core;
 using VRC.Dynamics;
 using VRC.SDK3.Avatars.Components;
 using VRC.SDK3.Avatars.ScriptableObjects;
 using VRC.SDK3.Dynamics.Constraint.Components;
+using VRC.SDK3.Dynamics.Contact.Components;
 using VRC.SDK3.Dynamics.PhysBone.Components;
 
 namespace MPCCT
@@ -26,6 +29,19 @@ namespace MPCCT
         private bool IsUseRotationConstraint;
         private bool IsRotationSolveInWorldSpace;
         private bool IsChangePBImmobileType;
+
+        // GUI state
+        private bool showAdvanced = false;
+        private bool showUnsupportedComponents = false;
+        private Vector2 scrollPosition = Vector2.zero;
+
+        private HashSet<string> SavedMenuGUID = new HashSet<string>();
+
+        // --- Localization ---
+        private enum Locale { English = 0, Chinese = 1, Japanese = 2 }
+        private Locale currentLocale = Locale.English;
+
+        #region Path
         private const string MAPrefabPath = "Assets/MPCCT/PhantomSystem/Prefab/PhantomMA.prefab";
         private const string MAPrefabPath_NoPhantomMenu = "Assets/MPCCT/PhantomSystem/Prefab/PhantomMA_NoPhantomMenu.prefab";
         private const string ReferenceAnimationPath = "Assets/MPCCT/PhantomSystem/Animation/PhantomSystem_FX_Reference.controller";
@@ -37,14 +53,6 @@ namespace MPCCT
         private const string GeneratedAnimationFolder = "Assets/MPCCT/PhantomSystem/~Generated/Animation";
         private const string GeneratedMenuFolder = "Assets/MPCCT/PhantomSystem/~Generated/Menu";
         private const string GeneratedTempPrefabFolder = "Assets/MPCCT/PhantomSystem/~Generated";
-
-        private bool showAdvanced = false;
-
-        private HashSet<string> SavedMenuGUID = new HashSet<string>();
-
-        // --- Localization ---
-        private enum Locale { English = 0, Chinese = 1, Japanese = 2 }
-        private Locale currentLocale = Locale.English;
 
         private const string LocalMainMenuPath_zh = "Assets/MPCCT/PhantomSystem/Menu/Menu_zh/PhantomSystemMain_zh.asset";
         private const string LocalMainMenuPath_jp = "Assets/MPCCT/PhantomSystem/Menu/Menu_jp/PhantomSystemMain_jp.asset";
@@ -58,6 +66,7 @@ namespace MPCCT
 
         private const string LocalViewSysMenuPath_zh = "Assets/MPCCT/PhantomSystem/ViewSystem/Menu/Menu_zh/ViewMain_zh.asset";
         private const string LocalViewSysMenuPath_jp = "Assets/MPCCT/PhantomSystem/ViewSystem/Menu/Menu_jp/ViewMain_jp.asset";
+        #endregion
 
         private static readonly Dictionary<string, (string en, string zh, string jp)> s_texts = new Dictionary<string, (string, string, string)>
         {
@@ -78,7 +87,65 @@ namespace MPCCT
             ["SuccessMessage"] = ("Setup completed!", "配置完成！", "設定が完了しました！"),
             ["ErrorTitle"] = ("Error!", "错误!", "エラー!"),
             ["ErrorMessage"] = ("An error occurred. See Console.", "出现错误，请查看Console", "エラーが発生しました。コンソールを確認してください。"),
-            ["OK"] = ("OK", "确定", "OK")
+            ["OK"] = ("OK", "确定", "OK"),
+            ["BaseAvatarValidationError"] = ("Base Avatar must be set.", "未设置基础模型", ""),
+            ["PhantomAvatarValidationError"] = ("Phantom Avatar must be set.", "未设置分身模型", ""),
+            ["BaseAvatarAnimatorNotFound"] = ("Base Avatar's animator component not found", "未能找到基础模型的Animator组件", ""),
+            ["PhantomAvatarAnimatorNotFound"] = ("Phantom Avatar's animator component not found", "未能找到分身模型的Animator组件", ""),
+            ["BaseAvatarAnimatorError"] = ("Base Avatar must be humanoid.", "基础模型需为humanoid", ""),
+            ["PhantomAvatarAnimatorError"] = ("Phantom Avatar must be humanoid.", "分身模型需为humanoid", ""),
+            ["ReferenceControllerNotFound"] = ("Reference animation controller not found. Please reinstall PhantomSystem", "未找到参考动画控制器。请重装PhantomSystem", ""),
+            ["ReferenceControllerError"] = ("Reference animation controller is broken. Please reinstall PhantomSystem", "参考动画控制器损坏。请重装PhantomSystem", ""),
+            ["UnsupportedComponentsWarning"] = ("Unsupported components found on Phantom Avatar. This may cause some issues.","分身模型上检测到不支持的组件。这可能会导致一些问题。",""),
+            ["ShowUnsupportedComponents"] = ("Unsupported Components", "不支持的组件", "")
+        };
+
+        private Type[] ComponentsWhiteList = new Type[]
+        { 
+            // VRC
+            typeof(VRCAvatarDescriptor),
+            typeof(VRCPositionConstraint),
+            typeof(VRCParentConstraint),
+            typeof(VRCAimConstraint),
+            typeof(VRCParentConstraint),
+            typeof(VRCRotationConstraint),
+            typeof(VRCScaleConstraint),
+            typeof(VRCContactReceiver),
+            typeof(VRCContactSender),
+            typeof(VRCHeadChop),
+            typeof(VRCPhysBone),
+            typeof(VRCPhysBoneCollider),
+            typeof(PipelineManager),
+            typeof(VRCSpatialAudioSource),
+            typeof(VRCStation),
+
+            // Unity
+            typeof(Transform),
+            typeof(Animator),
+            typeof(Animation),
+            typeof(AudioSource),
+            typeof(Camera),
+            typeof(Cloth),
+            typeof(Collider),
+            typeof(Joint),
+            typeof(FlareLayer),
+            typeof(Light),
+            typeof(LineRenderer),
+            typeof(MeshFilter),
+            typeof(MeshRenderer),
+            typeof(SkinnedMeshRenderer),
+            typeof(ParticleSystem),
+            typeof(ParticleSystemRenderer),
+            typeof(TrailRenderer),
+            typeof(Rigidbody),
+
+            // Unity Animation Rigging
+            typeof(AimConstraint),
+            typeof(LookAtConstraint),
+            typeof(ParentConstraint),
+            typeof(PositionConstraint),
+            typeof(RotationConstraint),
+            typeof(ScaleConstraint),
         };
 
         private string T(string key)
@@ -157,12 +224,6 @@ namespace MPCCT
                 // copy reference controller and replace states
                 AssetDatabase.CopyAsset(referenceAnimationPath, $"{animFolderForAvatar}/PhantomSystem_FX.controller");
                 PhantomController = AssetDatabase.LoadAssetAtPath<AnimatorController>($"{animFolderForAvatar}/PhantomSystem_FX.controller");
-
-                // validation reference controller
-                if (!(PhantomController != null && PhantomController.layers.Length > 3))
-                {
-                   throw new InvalidOperationException("[PhantomSystem] Invalid Reference Animator Controller, PhantomSystem may broken.");
-                }
 
                 var MainStateMachine = PhantomController.layers[1].stateMachine;
                 var PositionLockStateMachine = PhantomController.layers[2].stateMachine;
@@ -249,6 +310,39 @@ namespace MPCCT
                 EditorGUI.indentLevel--;
             }
 
+            // Validation
+            var validationErrors = ValidateSetup();
+            foreach (var error in validationErrors)
+            {
+                EditorGUILayout.HelpBox(error, MessageType.Error);
+            }
+
+            // Unsupported components warning
+            if (PhantomAvatar != null)
+            {
+                var inValidComponents = ValidateComponents(PhantomAvatar);
+                if (inValidComponents.Count > 0)
+                {
+                    EditorGUILayout.HelpBox(T("UnsupportedComponentsWarning"), MessageType.Warning);
+                    showUnsupportedComponents = EditorGUILayout.Foldout(showUnsupportedComponents, T("ShowUnsupportedComponents"), true);
+                    if (showUnsupportedComponents)
+                    {
+                        EditorGUI.indentLevel++;
+                        scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.Height(100));
+                        EditorGUI.BeginDisabledGroup(true);
+                        foreach (var compObj in inValidComponents)
+                        {
+                            EditorGUILayout.ObjectField(compObj.name, compObj, typeof(GameObject), true);
+                        }
+                        EditorGUI.EndDisabledGroup();
+                        EditorGUILayout.EndScrollView();
+                        EditorGUI.indentLevel--;
+                    }
+                }    
+            }
+                
+            // Start button
+            EditorGUI.BeginDisabledGroup(validationErrors.Count > 0);
             if (GUILayout.Button(T("StartButton")))
             {
                 try
@@ -266,6 +360,89 @@ namespace MPCCT
                 // GC
                 System.GC.Collect();
             }
+            EditorGUI.EndDisabledGroup();
+        }
+
+        private List<string> ValidateSetup()
+        {
+            var errors = new List<string>();
+
+            // Basic checks
+            if (BaseAvatar == null)
+            {
+                errors.Add(T("BaseAvatarValidationError"));
+            }
+            if (PhantomAvatar == null)
+            {
+                errors.Add(T("PhantomAvatarValidationError"));
+            }
+
+            // Animators and humanoid
+            if (BaseAvatar != null)
+            {
+                var baseAnimator = BaseAvatar.GetComponent<Animator>();
+                if (baseAnimator == null)
+                {
+                    errors.Add(T("BaseAvatarAnimatorNotFound"));
+                }
+                else if (!baseAnimator.isHuman)
+                {
+                    errors.Add(T("BaseAvatarAnimatorError"));
+                }
+            }
+
+            if (PhantomAvatar != null)
+            {
+                var phantomAnimator = PhantomAvatar.GetComponent<Animator>();
+                if (phantomAnimator == null)
+                {
+                    errors.Add(T("PhantomAvatarAnimatorNotFound"));
+                }
+                else if(!phantomAnimator.isHuman)
+                {
+                    errors.Add(T("PhantomAvatarAnimatorError"));
+                }
+            }
+
+            // Reference animation controller validity
+            var refController = AssetDatabase.LoadAssetAtPath<AnimatorController>(ReferenceAnimationPath);
+            if (refController == null)
+            {
+                errors.Add(T("ReferenceControllerNotFound"));
+            }
+            else if (refController.layers == null || refController.layers.Length <= 3)
+            {
+                errors.Add(T("ReferenceControllerError"));
+            }
+
+            return errors;
+        }
+
+        private List<Component> ValidateComponents(VRCAvatarDescriptor avatar)
+        {
+            var MAAssembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == "nadena.dev.modular-avatar.core");
+            var MAComponentList = MAAssembly.GetTypes().Where(t => t.IsSubclassOf(typeof(MonoBehaviour))).ToArray();
+            var invalidComponents = new List<Component>();
+            var allComponents = avatar.GetComponentsInChildren<Component>(true);
+            foreach(var component in  allComponents)
+            {
+                // Check if component is on the arvatar root
+                if (component.gameObject != avatar.gameObject)
+                {
+                    // Check for whitelist
+                    if (ComponentsWhiteList.Any(t => t == component.GetType() || t.IsAssignableFrom(component.GetType())))
+                    {
+                        continue;
+                    }
+                    // Check for MA components
+                    if (MAComponentList.Any(t => t == component.GetType() || t.IsAssignableFrom(component.GetType())))
+                    {
+                        continue;
+                    }
+                    invalidComponents.Add(component);
+                }
+            }
+            return invalidComponents;
         }
 
         private void Setup()
@@ -274,32 +451,13 @@ namespace MPCCT
             var ctx = new SetupContext();
             var anim = new SetupAnimation();
 
-            // Validation: BaseAvatar and PhantomAvatar must be set
-            if (BaseAvatar == null || PhantomAvatar == null)
-            {
-                throw new InvalidOperationException("[PhantomSystem] Base Avatar and Phantom Avatar must be set.");
-            }
-
             BaseAvatar.gameObject.SetActive(true);
-            PhantomAvatar.gameObject.SetActive(false);
+            PhantomAvatar.gameObject.SetActive(true);
 
             Debug.Log($"[PhantomSystem] Setting up Phantom System for {BaseAvatar.name} using {PhantomAvatar.name} ...");
 
             DeleteExistingPhantomSystem();
             PhantomSystemInit(ctx);
-
-            // Validation: Animator should be humanoid
-            ctx.PhantomAnimator = ctx.PhantomAvatarRoot.GetComponent<Animator>();
-            if (ctx.PhantomAnimator == null || ctx.PhantomAnimator.isHuman == false)
-            {
-                throw new InvalidOperationException("[PhantomSystem] Phantom Avatar must have a humanoid Animator component.");
-            }
-
-            ctx.BaseAnimator = BaseAvatar.GetComponent<Animator>();
-            if (ctx.BaseAnimator == null || ctx.BaseAnimator.isHuman == false)
-            {
-                throw new InvalidOperationException("[PhantomSystem] Base Avatar must have a humanoid Animator component.");
-            }
 
             SetupArmatureConstraint(ctx, anim);
             SetupBoneConstraints(ctx, anim);
@@ -311,6 +469,8 @@ namespace MPCCT
             if (!IsRemoveOriginalAnimator) MergeOriginalAnimator(ctx);
             if (IsChangePBImmobileType) ChangePhysBoneImmobileType(ctx);
             DeletePhantomAvatarRootComponents(ctx);
+
+            PhantomAvatar.gameObject.SetActive(false);
         }
 
         private void DeleteExistingPhantomSystem()
@@ -353,6 +513,9 @@ namespace MPCCT
 
             ctx.PhantomAvatarRoot.name = "PhantomAvatar";
             ctx.PhantomAvatarRoot.SetActive(false);
+
+            ctx.PhantomAnimator = ctx.PhantomAvatarRoot.GetComponent<Animator>();
+            ctx.BaseAnimator = BaseAvatar.GetComponent<Animator>();
         }
 
         private void SetupArmatureConstraint(SetupContext ctx, SetupAnimation anim)
