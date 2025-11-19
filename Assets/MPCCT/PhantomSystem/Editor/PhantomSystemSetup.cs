@@ -73,31 +73,31 @@ namespace MPCCT
             ["LanguageLabel"] = ("Language", "语言", "言語"),
             ["BaseAvatar"] = ("Base Avatar", "基础模型", "ベースアバター"),
             ["PhantomAvatar"] = ("Phantom Avatar", "分身模型", "ファントムアバター"),
-            ["RenameParameters"] = ("Rename phantom avatar parameters", "重命名分身模型的参数", "ファントムのパラメータをリネームする"),
-            ["RemoveViewSystem"] = ("Remove phantom view window", "去除分身视角窗口", "ファントムの視点ウィンドウを削除"),
+            ["RenameParameters"] = ("Rename phantom avatar parameters", "重命名分身模型的参数", "ファントムアバターのパラメータをリネームする"),
+            ["RemoveViewSystem"] = ("Remove phantom view window", "去除分身视角窗口", "ファントムのビューウィンドウを削除"),
             ["AdvancedSettings"] = ("Advanced Settings", "高级设置", "詳細設定"),
-            ["RemovePhantomMenu"] = ("Remove phantom avatar menu", "去除分身模型菜单", "ファントムメニューを削除"),
-            ["RemovePhantomAvatarMA"] = ("Remove Modular Avatar components from phantom", "去除分身模型MA组件", "ファントムの MA コンポーネントを削除"),
-            ["RemoveOriginalAnimator"] = ("Remove Phantom Avatar's original FX", "去除分身模型原始FX", "ファントムの元のアニメーターを削除"),
-            ["ChangePBImmobileType"] = ("Change PhysBone ImmobileType (may break some physbones)", "更改分身模型动骨ImmobileType（可能会使分身上部分动骨异常）", "PhysBoneのImmobileTypeを変更（骨が崩れる場合あり）"),
-            ["UseRotationConstraint"] = ("Use Rotation Constraint (useful when bone hierarchies differ)", "使用Rotation Constraint（分身模型和基础模型骨骼不同时可能有用）", "Rotation Constraintを使用（ボーン構成が異なる場合に有効）"),
-            ["RotationSolveInWorldSpace"] = ("Solve constraint in world space (may affect facing direction)", "使用世界空间上的约束（对于模型不适配可能有用，会导致模型面朝方向不固定在世界）", "ワールド空間で解く（向きが固定されない場合あり）"),
-            ["StartButton"] = ("Setup!", "开始配置！", "セットアップを開始"),
+            ["RemovePhantomMenu"] = ("Remove phantom avatar menu", "去除分身模型菜单", "ファントムアバターメニューを削除"),
+            ["RemovePhantomAvatarMA"] = ("Remove Modular Avatar components from phantom", "去除分身模型MA组件", "ファントムのModular Avatarコンポーネントを削除"),
+            ["RemoveOriginalAnimator"] = ("Remove Phantom Avatar's original FX", "去除分身模型原始FX", "ファントムアバターの元のFXを削除"),
+            ["ChangePBImmobileType"] = ("Change PhysBone ImmobileType (may break some physbones)", "更改分身模型动骨ImmobileType（可能会使分身上部分动骨异常）", "PhysBoneのImmobileTypeを変更（一部物理ボーンが正常に動作しなくなる可能性あり）"),
+            ["UseRotationConstraint"] = ("Use Rotation Constraint (useful when bone hierarchies differ)", "使用Rotation Constraint（分身模型和基础模型骨骼不同时可能有用）", "回転制約を使用（ボーン階層が異なる場合に有効）"),
+            ["RotationSolveInWorldSpace"] = ("Solve constraint in world space (may affect facing direction)", "使用世界空间上的约束（对于模型不适配可能有用，会导致模型面朝方向不固定在世界）", "ワールド空間で制約を解決（向きが固定されなくなる可能性あり）"),
+            ["StartButton"] = ("Setup!", "开始配置！", "セットアップ開始！"),
             ["SuccessTitle"] = ("Success", "成功", "成功"),
-            ["SuccessMessage"] = ("Setup completed!", "配置完成！", "設定が完了しました！"),
-            ["ErrorTitle"] = ("Error!", "错误!", "エラー!"),
+            ["SuccessMessage"] = ("Setup completed!", "配置完成！", "セットアップが完了しました！"),
+            ["ErrorTitle"] = ("Error!", "错误!", "エラー！"),
             ["ErrorMessage"] = ("An error occurred. See Console.", "出现错误，请查看Console", "エラーが発生しました。コンソールを確認してください。"),
             ["OK"] = ("OK", "确定", "OK"),
-            ["BaseAvatarValidationError"] = ("Base Avatar must be set.", "未设置基础模型", ""),
-            ["PhantomAvatarValidationError"] = ("Phantom Avatar must be set.", "未设置分身模型", ""),
-            ["BaseAvatarAnimatorNotFound"] = ("Base Avatar's animator component not found", "未能找到基础模型的Animator组件", ""),
-            ["PhantomAvatarAnimatorNotFound"] = ("Phantom Avatar's animator component not found", "未能找到分身模型的Animator组件", ""),
-            ["BaseAvatarAnimatorError"] = ("Base Avatar must be humanoid.", "基础模型需为humanoid", ""),
-            ["PhantomAvatarAnimatorError"] = ("Phantom Avatar must be humanoid.", "分身模型需为humanoid", ""),
-            ["ReferenceControllerNotFound"] = ("Reference animation controller not found. Please reinstall PhantomSystem", "未找到参考动画控制器。请重装PhantomSystem", ""),
-            ["ReferenceControllerError"] = ("Reference animation controller is broken. Please reinstall PhantomSystem", "参考动画控制器损坏。请重装PhantomSystem", ""),
-            ["UnsupportedComponentsWarning"] = ("Unsupported components found on Phantom Avatar. This may cause some issues.","分身模型上检测到不支持的组件。这可能会导致一些问题。",""),
-            ["ShowUnsupportedComponents"] = ("Unsupported Components", "不支持的组件", "")
+            ["BaseAvatarValidationError"] = ("Base Avatar must be set.", "未设置基础模型", "ベースアバターを設定する必要があります"),
+            ["PhantomAvatarValidationError"] = ("Phantom Avatar must be set.", "未设置分身模型", "ファントムアバターを設定する必要があります"),
+            ["BaseAvatarAnimatorNotFound"] = ("Base Avatar's animator component not found", "未能找到基础模型的Animator组件", "ベースアバターのアニメーターコンポーネントが見つかりません"),
+            ["PhantomAvatarAnimatorNotFound"] = ("Phantom Avatar's animator component not found", "未能找到分身模型的Animator组件", "ファントムアバターのアニメーターコンポーネントが見つかりません"),
+            ["BaseAvatarAnimatorError"] = ("Base Avatar must be humanoid.", "基础模型需为humanoid", "ベースアバターはヒューマノイドである必要があります"),
+            ["PhantomAvatarAnimatorError"] = ("Phantom Avatar must be humanoid.", "分身模型需为humanoid", "ファントムアバターはヒューマノイドである必要があります"),
+            ["ReferenceControllerNotFound"] = ("Reference animation controller not found. Please reinstall PhantomSystem", "未找到参考动画控制器。请重装PhantomSystem", "参照用アニメーションコントローラーが見つかりません。PhantomSystemを再インストールしてください"),
+            ["ReferenceControllerError"] = ("Reference animation controller is broken. Please reinstall PhantomSystem", "参考动画控制器损坏。请重装PhantomSystem", "参照用アニメーションコントローラーが壊れています。PhantomSystemを再インストールしてください"),
+            ["UnsupportedComponentsWarning"] = ("Unsupported components found on Phantom Avatar. This may cause some issues.", "分身模型上检测到不支持的组件。这可能会导致一些问题。", "ファントムアバターにサポートされていないコンポーネントが見つかりました。問題が発生する可能性があります"),
+            ["ShowUnsupportedComponents"] = ("Unsupported Components", "不支持的组件", "サポート外コンポーネント")
         };
 
         private Type[] ComponentsWhiteList = new Type[]
@@ -264,7 +264,7 @@ namespace MPCCT
         [MenuItem("MPCCT/PhantomSystemSetup")]
         private static void Init()
         {
-            var window = GetWindowWithRect<PhantomSystemSetup>(new Rect(0, 0, 500, 400));
+            var window = GetWindowWithRect<PhantomSystemSetup>(new Rect(0, 0, 500, 500));
             window.minSize = new Vector2(200, 200);
             window.maxSize = new Vector2(1000, 1000);
             window.Show();
@@ -273,7 +273,7 @@ namespace MPCCT
         private void OnGUI()
         {
             // Title
-            EditorGUILayout.LabelField("PhantomSystem v0.2.4-alpha Made By MPCCT");
+            EditorGUILayout.LabelField("PhantomSystem v0.2.6-alpha Made By MPCCT");
 
             // Language selection
             string[] localeOptions = new[] { "English", "中文", "日本語" };
@@ -746,7 +746,15 @@ namespace MPCCT
             {
                 if (proxy.boneReference == HumanBodyBones.LastBone)
                 {
-                    proxy.subPath = "PhantomSystem/PhantomAvatar/" + proxy.subPath;
+                    if (proxy.subPath.StartsWith(ctx.PhantomAmaturePath))
+                    {
+                        var NewArmaturePath = GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform);
+                        proxy.subPath = NewArmaturePath + proxy.subPath.Substring(ctx.PhantomAmaturePath.Length);
+                    }
+                    else
+                    {
+                        proxy.subPath = "PhantomSystem/PhantomAvatar/" + proxy.subPath;
+                    }
                 }
                 else
                 {
