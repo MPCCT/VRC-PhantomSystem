@@ -228,9 +228,9 @@ namespace MPCCT
                 AssetDatabase.CopyAsset(referenceAnimationPath, $"{animFolderForAvatar}/PhantomSystem_FX.controller");
                 PhantomController = AssetDatabase.LoadAssetAtPath<AnimatorController>($"{animFolderForAvatar}/PhantomSystem_FX.controller");
 
-                var MainStateMachine = PhantomController.layers[1].stateMachine;
-                var PositionLockStateMachine = PhantomController.layers[2].stateMachine;
-                var GrabStateMachine = PhantomController.layers[3].stateMachine;
+                var MainStateMachine = PhantomController.layers[0].stateMachine;
+                var PositionLockStateMachine = PhantomController.layers[1].stateMachine;
+                var GrabStateMachine = PhantomController.layers[2].stateMachine;
 
                 foreach (var state in MainStateMachine.states)
                 {
@@ -415,7 +415,7 @@ namespace MPCCT
             {
                 errors.Add(T("ReferenceControllerNotFound"));
             }
-            else if (refController.layers == null || refController.layers.Length <= 3)
+            else if (refController.layers == null || refController.layers.Length < 3)
             {
                 errors.Add(T("ReferenceControllerError"));
             }
