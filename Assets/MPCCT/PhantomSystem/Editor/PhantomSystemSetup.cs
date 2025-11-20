@@ -19,6 +19,7 @@ namespace MPCCT
 {
     public class PhantomSystemSetup : EditorWindow
     {
+        #region --- Variables ---
         private VRCAvatarDescriptor BaseAvatar;
         private VRCAvatarDescriptor PhantomAvatar;
         private bool IsRenameParameters;
@@ -37,11 +38,14 @@ namespace MPCCT
 
         private HashSet<string> SavedMenuGUID = new HashSet<string>();
 
-        // --- Localization ---
+        private string GeneratedAnimationPath;
+        private string GeneratedMenuPath;
+
         private enum Locale { English = 0, Chinese = 1, Japanese = 2 }
         private Locale currentLocale = Locale.English;
+        #endregion
 
-        #region Path
+        #region --- Constants & Texts ---
         private const string MAPrefabPath = "Assets/MPCCT/PhantomSystem/Prefab/PhantomMA.prefab";
         private const string MAPrefabPath_NoPhantomMenu = "Assets/MPCCT/PhantomSystem/Prefab/PhantomMA_NoPhantomMenu.prefab";
         private const string ReferenceAnimationPath = "Assets/MPCCT/PhantomSystem/Animation/PhantomSystem_FX_Reference.controller";
@@ -50,9 +54,7 @@ namespace MPCCT
         private const string ViewSystemPrefabPath_NoPhantomMenu = "Assets/MPCCT/PhantomSystem/ViewSystem/Prefab/PhantomView_NoPhantomMenu.prefab";
         private const string GrabPrefabPath = "Assets/MPCCT/PhantomSystem/Prefab/GrabRoot.prefab";
 
-        private const string GeneratedAnimationFolder = "Assets/MPCCT/PhantomSystem/~Generated/Animation";
-        private const string GeneratedMenuFolder = "Assets/MPCCT/PhantomSystem/~Generated/Menu";
-        private const string GeneratedTempPrefabFolder = "Assets/MPCCT/PhantomSystem/~Generated";
+        private const string GeneratedMainFolder = "Assets/MPCCT/PhantomSystem/~Generated";
 
         private const string LocalMainMenuPath_zh = "Assets/MPCCT/PhantomSystem/Menu/Menu_zh/PhantomSystemMain_zh.asset";
         private const string LocalMainMenuPath_jp = "Assets/MPCCT/PhantomSystem/Menu/Menu_jp/PhantomSystemMain_jp.asset";
@@ -66,7 +68,6 @@ namespace MPCCT
 
         private const string LocalViewSysMenuPath_zh = "Assets/MPCCT/PhantomSystem/ViewSystem/Menu/Menu_zh/ViewMain_zh.asset";
         private const string LocalViewSysMenuPath_jp = "Assets/MPCCT/PhantomSystem/ViewSystem/Menu/Menu_jp/ViewMain_jp.asset";
-        #endregion
 
         private static readonly Dictionary<string, (string en, string zh, string jp)> s_texts = new Dictionary<string, (string, string, string)>
         {
@@ -100,7 +101,21 @@ namespace MPCCT
             ["ShowUnsupportedComponents"] = ("Unsupported Components", "不支持的组件", "サポート外コンポーネント")
         };
 
-        private Type[] ComponentsWhiteList = new Type[]
+        private string T(string key)
+        {
+            if (!s_texts.TryGetValue(key, out var tuple)) return key;
+            switch (currentLocale)
+            {
+                case Locale.Chinese:
+                    return tuple.zh;
+                case Locale.Japanese:
+                    return tuple.jp;
+                default:
+                    return tuple.en;
+            }
+        }
+
+        private static readonly Type[] ComponentsWhiteList = new Type[]
         { 
             // VRC
             typeof(VRCAvatarDescriptor),
@@ -147,21 +162,9 @@ namespace MPCCT
             typeof(RotationConstraint),
             typeof(ScaleConstraint),
         };
+        #endregion
 
-        private string T(string key)
-        {
-            if (!s_texts.TryGetValue(key, out var tuple)) return key;
-            switch (currentLocale)
-            {
-                case Locale.Chinese:
-                    return tuple.zh;
-                case Locale.Japanese:
-                    return tuple.jp;
-                default:
-                    return tuple.en;
-            }
-        }
-
+        #region --- Classes ---
         // Calss to hold context data between setup steps
         private class SetupContext
         {
@@ -254,7 +257,9 @@ namespace MPCCT
                 AssetDatabase.SaveAssets();
             }
         }
+        #endregion 
 
+        #region --- GUI & Validation---
         private void OnEnable()
         {
             // Load saved locale
@@ -444,7 +449,9 @@ namespace MPCCT
             }
             return invalidComponents;
         }
+        #endregion
 
+        #region --- Setup Steps ---
         private void Setup()
         {
             SavedMenuGUID.Clear();
@@ -456,14 +463,19 @@ namespace MPCCT
 
             Debug.Log($"[PhantomSystem] Setting up Phantom System for {BaseAvatar.name} using {PhantomAvatar.name} ...");
 
+            // Create unique generated paths
+            var AvatarGlobalIdHash = GlobalObjectId.GetGlobalObjectIdSlow(BaseAvatar).GetHashCode();
+            var AvatarNameWithId = $"{BaseAvatar.name}_{AvatarGlobalIdHash}";
+            GeneratedAnimationPath = $"{GeneratedMainFolder}/{AvatarNameWithId}/Animation";
+            GeneratedMenuPath = $"{GeneratedMainFolder}/{AvatarNameWithId}/Menu";
+
             DeleteExistingPhantomSystem();
             PhantomSystemInit(ctx);
-
             SetupArmatureConstraint(ctx, anim);
             SetupBoneConstraints(ctx, anim);
             AdaptModularAvatar(ctx);
             SetupGrabRoot(ctx, anim);
-            anim.Save($"{GeneratedAnimationFolder}/{BaseAvatar.name}", ReferenceAnimationPath);
+            anim.Save(GeneratedAnimationPath, ReferenceAnimationPath);
             AddMAPrefab(ctx, anim);
             if (!IsRemoveViewSystem) SetupViewSystem(ctx);
             if (!IsRemoveOriginalAnimator) MergeOriginalAnimator(ctx);
@@ -493,18 +505,18 @@ namespace MPCCT
             string tempPrefabName = $"{PhantomAvatar.name}_tempPrefab_{PhantomAvatar.GetInstanceID()}.prefab";
 
             // create folder if not exists
-            if (!Directory.Exists(GeneratedTempPrefabFolder))
+            if (!Directory.Exists(GeneratedMainFolder))
             {
-                Directory.CreateDirectory(GeneratedTempPrefabFolder);
+                Directory.CreateDirectory(GeneratedMainFolder);
             }
 
-            tempPrefab = PrefabUtility.SaveAsPrefabAsset(PhantomAvatar.gameObject, $"{GeneratedTempPrefabFolder}/{tempPrefabName}");
+            tempPrefab = PrefabUtility.SaveAsPrefabAsset(PhantomAvatar.gameObject, $"{GeneratedMainFolder}/{tempPrefabName}");
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             var instanceAvatar = PrefabUtility.InstantiatePrefab(tempPrefab, ctx.PhantomSystem.transform) as GameObject;
             ctx.PhantomAvatarRoot = instanceAvatar;
             PrefabUtility.UnpackPrefabInstance(instanceAvatar, PrefabUnpackMode.OutermostRoot, InteractionMode.AutomatedAction);
-            AssetDatabase.DeleteAsset($"{GeneratedTempPrefabFolder}/{tempPrefabName}");
+            AssetDatabase.DeleteAsset($"{GeneratedMainFolder}/{tempPrefabName}");
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
@@ -905,11 +917,11 @@ namespace MPCCT
             else
             {
                 // Rebase MA menus and parameters
-                if (!Directory.Exists($"{GeneratedMenuFolder}/{BaseAvatar.name}"))
+                if (!Directory.Exists(GeneratedMenuPath))
                 {
-                    Directory.CreateDirectory($"{GeneratedMenuFolder}/{BaseAvatar.name}");
+                    Directory.CreateDirectory(GeneratedMenuPath);
                 }
-                string[] existingMenus = Directory.GetFiles($"{GeneratedMenuFolder}/{BaseAvatar.name}");
+                string[] existingMenus = Directory.GetFiles(GeneratedMenuPath);
                 foreach (var existingmenu in existingMenus) AssetDatabase.DeleteAsset(existingmenu);
 
                 foreach (var installer in MAInstaller)
@@ -920,12 +932,12 @@ namespace MPCCT
                     }
                     else
                     {
-                        installer.installTargetMenu = CopyExpressionMenuRecursively(installer.installTargetMenu, $"{GeneratedMenuFolder}/{BaseAvatar.name}");
+                        installer.installTargetMenu = CopyExpressionMenuRecursively(installer.installTargetMenu, GeneratedMenuPath);
                     }
 
                     if (installer.menuToAppend != null)
                     {
-                        installer.menuToAppend = CopyExpressionMenuRecursively(installer.menuToAppend, $"{GeneratedMenuFolder}/{BaseAvatar.name}");
+                        installer.menuToAppend = CopyExpressionMenuRecursively(installer.menuToAppend, GeneratedMenuPath);
                     }
 
                     EditorUtility.SetDirty(installer);
@@ -937,7 +949,7 @@ namespace MPCCT
                 {
                     if (item.Control.type == VRCExpressionsMenu.Control.ControlType.SubMenu && item.MenuSource == SubmenuSource.MenuAsset)
                     {
-                        item.Control.subMenu = CopyExpressionMenuRecursively(item.Control.subMenu, $"{GeneratedMenuFolder}/{BaseAvatar.name}");
+                        item.Control.subMenu = CopyExpressionMenuRecursively(item.Control.subMenu, GeneratedMenuPath);
                     }
                     if (!string.IsNullOrEmpty(item.Control.parameter.name))
                     {
@@ -1094,7 +1106,7 @@ namespace MPCCT
                 var PhantomAvatarMAMenuInstaller = PhantomAvatarMA.AddComponent<ModularAvatarMenuInstaller>();
                 if (PhantomAvatar.expressionsMenu != null)
                 {
-                    PhantomAvatarMAMenuInstaller.menuToAppend = CopyExpressionMenuRecursively(PhantomAvatar.expressionsMenu, $"{GeneratedMenuFolder}/{BaseAvatar.name}");
+                    PhantomAvatarMAMenuInstaller.menuToAppend = CopyExpressionMenuRecursively(PhantomAvatar.expressionsMenu, GeneratedMenuPath);
                     PhantomAvatarMAMenuInstaller.installTargetMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(PhantomMenuPath);
                 }
             }
@@ -1178,7 +1190,9 @@ namespace MPCCT
                 }
             }
         }
+        #endregion
 
+        #region --- Utilities ---
         private static string GetRelativePath(Transform target, Transform root)
         {
             if (target == root)
@@ -1299,5 +1313,6 @@ namespace MPCCT
             }
             return obj;
         }
+        #endregion
     }
 }
