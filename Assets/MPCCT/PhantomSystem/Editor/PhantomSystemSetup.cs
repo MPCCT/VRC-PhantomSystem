@@ -80,6 +80,7 @@ namespace MPCCT
             ["PhantomAvatar"] = ("Phantom Avatar", "分身模型", "ファントムアバター"),
             ["RenameParameters"] = ("Rename phantom avatar parameters", "重命名分身模型的参数", "ファントムアバターのパラメータをリネームする"),
             ["Exceptions"] = ("Exceptions", "例外项", "例外"),
+            ["ExceptionsMessage"] = ("The following Modular Avatar Parameters will NOT be renamed.", "以下Modular Avatar Parameters将不会被重命名。", "以下のModular Avatar Parametersはリネームされません。"),
             ["ChooseAllParameters"] = ("Choose All Modular Avatar Parameters", "选择所有Modular Avatar Parameters", "すべてのModular Avatar Parametersを選択"),
             ["DragMessage"] = ("Drag Modular Avatar Parameters here to add to exceptions", "将Modular Avatar Parameters拖拽到此处以添加到例外项", "Modular Avatar Parametersをここにドラッグして例外に追加"),
             ["RemoveViewSystem"] = ("Remove phantom view window", "去除分身视角窗口", "ファントムのビューウィンドウを削除"),
@@ -286,7 +287,7 @@ namespace MPCCT
         private void OnGUI()
         {
             // Title
-            EditorGUILayout.LabelField("PhantomSystem v0.2.7-alpha Made By MPCCT");
+            EditorGUILayout.LabelField("PhantomSystem v0.2.8-alpha Made By MPCCT");
 
             // Language selection
             string[] localeOptions = new[] { "English", "中文", "日本語" };
@@ -309,6 +310,7 @@ namespace MPCCT
                 showExceptions = EditorGUILayout.Foldout(showExceptions, T("Exceptions"), true);
                 if (showExceptions)
                 {
+                    EditorGUILayout.HelpBox(T("ExceptionsMessage"), MessageType.Info);
                     exceptionScrollPosition = EditorGUILayout.BeginScrollView(exceptionScrollPosition, GUILayout.Height(100));
                     for(int i = 0;i < ExceptionParameters.Count; i++)
                     {
