@@ -1339,11 +1339,7 @@ namespace MPCCT
 
         private string RebasePhantomPath(SetupContext ctx, string path)
         {
-            if (path.StartsWith("PhantomSystem/PhantomAvatar/"))
-            {
-                return path;
-            }
-            else if (path.StartsWith(ctx.PhantomAmaturePath))
+            if (path.StartsWith(ctx.PhantomAmaturePath))
             {
                 var NewArmaturePath = GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform);
                 return NewArmaturePath + path.Substring(ctx.PhantomAmaturePath.Length);
