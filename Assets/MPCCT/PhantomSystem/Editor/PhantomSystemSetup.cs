@@ -31,10 +31,14 @@ namespace MPCCT
         private bool IsRotationSolveInWorldSpace;
         private bool IsChangePBImmobileType;
 
+        private List<ModularAvatarParameters> ExceptionParameters = new List<ModularAvatarParameters>();
+
         // GUI state
+        private bool showExceptions = false;
         private bool showAdvanced = false;
         private bool showUnsupportedComponents = false;
-        private Vector2 scrollPosition = Vector2.zero;
+        private Vector2 exceptionScrollPosition = Vector2.zero;
+        private Vector2 componentsScrollPosition = Vector2.zero;
 
         private HashSet<string> SavedMenuGUID = new HashSet<string>();
 
@@ -75,6 +79,9 @@ namespace MPCCT
             ["BaseAvatar"] = ("Base Avatar", "基础模型", "ベースアバター"),
             ["PhantomAvatar"] = ("Phantom Avatar", "分身模型", "ファントムアバター"),
             ["RenameParameters"] = ("Rename phantom avatar parameters", "重命名分身模型的参数", "ファントムアバターのパラメータをリネームする"),
+            ["Exceptions"] = ("Exceptions", "例外项", "例外"),
+            ["ChooseAllParameters"] = ("Choose All Modular Avatar Parameters", "选择所有Modular Avatar Parameters", "すべてのModular Avatar Parametersを選択"),
+            ["DragMessage"] = ("Drag Modular Avatar Parameters here to add to exceptions", "将Modular Avatar Parameters拖拽到此处以添加到例外项", "Modular Avatar Parametersをここにドラッグして例外に追加"),
             ["RemoveViewSystem"] = ("Remove phantom view window", "去除分身视角窗口", "ファントムのビューウィンドウを削除"),
             ["AdvancedSettings"] = ("Advanced Settings", "高级设置", "詳細設定"),
             ["RemovePhantomMenu"] = ("Remove phantom avatar menu", "去除分身模型菜单", "ファントムアバターメニューを削除"),
@@ -175,6 +182,7 @@ namespace MPCCT
             public Transform PhantomArmature;
             public Transform BaseArmature;
             public Dictionary<HumanBodyBones, string> PhantomBonePaths = new Dictionary<HumanBodyBones, string>();
+            public List<ModularAvatarParameters> ExceptionParameters = new List<ModularAvatarParameters>();
             public string PhantomAmaturePath;
         }
 
@@ -278,7 +286,7 @@ namespace MPCCT
         private void OnGUI()
         {
             // Title
-            EditorGUILayout.LabelField("PhantomSystem v0.2.6-alpha Made By MPCCT");
+            EditorGUILayout.LabelField("PhantomSystem v0.2.7-alpha Made By MPCCT");
 
             // Language selection
             string[] localeOptions = new[] { "English", "中文", "日本語" };
@@ -293,6 +301,48 @@ namespace MPCCT
             BaseAvatar = EditorGUILayout.ObjectField(T("BaseAvatar"), BaseAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
             PhantomAvatar = EditorGUILayout.ObjectField(T("PhantomAvatar"), PhantomAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
             IsRenameParameters = EditorGUILayout.ToggleLeft(T("RenameParameters"), IsRenameParameters);
+
+            // MA Parameters Exceptions list
+            if (IsRenameParameters && PhantomAvatar != null)
+            {
+                EditorGUI.indentLevel++;
+                showExceptions = EditorGUILayout.Foldout(showExceptions, T("Exceptions"), true);
+                if (showExceptions)
+                {
+                    exceptionScrollPosition = EditorGUILayout.BeginScrollView(exceptionScrollPosition, GUILayout.Height(100));
+                    for(int i = 0;i < ExceptionParameters.Count; i++)
+                    {
+                        EditorGUILayout.BeginHorizontal();
+                        ExceptionParameters[i] = (ModularAvatarParameters)EditorGUILayout.ObjectField(ExceptionParameters[i], typeof(ModularAvatarParameters), true);
+                        if (GUILayout.Button("X", GUILayout.Width(20)))
+                        {
+                            ExceptionParameters.RemoveAt(i);
+                            i--;
+                        }
+                        EditorGUILayout.EndHorizontal();
+                    }
+                    EditorGUILayout.EndScrollView();
+                    EditorGUILayout.Space();
+                    EditorGUILayout.LabelField(T("DragMessage"));
+                    ModularAvatarParameters newParameter = (ModularAvatarParameters)EditorGUILayout.ObjectField(null, typeof(ModularAvatarParameters), true);
+                    if (newParameter != null && !ExceptionParameters.Contains(newParameter) 
+                        && newParameter.transform.IsChildOf(PhantomAvatar.transform))
+                    {
+                        ExceptionParameters.Add(newParameter);
+                        Repaint();
+                    }
+                    EditorGUILayout.BeginHorizontal();
+                    GUILayout.Space(EditorGUI.indentLevel * 15);
+                    if (GUILayout.Button(T("ChooseAllParameters")))
+                    {
+                        ExceptionParameters = PhantomAvatar.GetComponentsInChildren<ModularAvatarParameters>(true).ToList();
+                        Repaint();
+                    }
+                    EditorGUILayout.EndHorizontal();
+                }
+                EditorGUI.indentLevel--;
+            }
+
             IsRemoveViewSystem = EditorGUILayout.ToggleLeft(T("RemoveViewSystem"), IsRemoveViewSystem);
 
             // Advanced Settings 
@@ -333,7 +383,7 @@ namespace MPCCT
                     if (showUnsupportedComponents)
                     {
                         EditorGUI.indentLevel++;
-                        scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.Height(100));
+                        componentsScrollPosition = EditorGUILayout.BeginScrollView(componentsScrollPosition, GUILayout.Height(100));
                         EditorGUI.BeginDisabledGroup(true);
                         foreach (var compObj in inValidComponents)
                         {
@@ -753,20 +803,14 @@ namespace MPCCT
 
             VRCExpressionsMenu PhantomMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(PhantomMenuPath);
 
+            RelinkExceptionParameterList(ctx);
+
             // MA bone proxy adaption
             foreach (var proxy in MABoneProxy)
             {
                 if (proxy.boneReference == HumanBodyBones.LastBone)
                 {
-                    if (proxy.subPath.StartsWith(ctx.PhantomAmaturePath))
-                    {
-                        var NewArmaturePath = GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform);
-                        proxy.subPath = NewArmaturePath + proxy.subPath.Substring(ctx.PhantomAmaturePath.Length);
-                    }
-                    else
-                    {
-                        proxy.subPath = "PhantomSystem/PhantomAvatar/" + proxy.subPath;
-                    }
+                    proxy.subPath = RebasePhantomPath(ctx, proxy.subPath);
                 }
                 else
                 {
@@ -982,6 +1026,8 @@ namespace MPCCT
                 {
                     foreach (var parameter in MAParameter)
                     {
+                        // Skip exceptions
+                        if (ctx.ExceptionParameters.Contains(parameter)) continue;
                         for (int i = 0; i < parameter.parameters.Count; i++)
                         {
                             var p = parameter.parameters[i];
@@ -1291,27 +1337,52 @@ namespace MPCCT
             return copiedMenu;
         }
 
+        private string RebasePhantomPath(SetupContext ctx, string path)
+        {
+            if (path.StartsWith("PhantomSystem/PhantomAvatar/"))
+            {
+                return path;
+            }
+            else if (path.StartsWith(ctx.PhantomAmaturePath))
+            {
+                var NewArmaturePath = GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform);
+                return NewArmaturePath + path.Substring(ctx.PhantomAmaturePath.Length);
+            }
+            else
+            {
+                return "PhantomSystem/PhantomAvatar/" + path;
+            }
+        }
+
+        private void RelinkExceptionParameterList(SetupContext ctx)
+        {
+            ctx.ExceptionParameters = new List<ModularAvatarParameters>();
+            for (int i = 0; i < ExceptionParameters.Count; i++)
+            {
+                var param = ExceptionParameters[i];
+                var paramRebasePath = RebasePhantomPath(ctx, GetRelativePath(param.transform, PhantomAvatar.transform));
+                if (BaseAvatar.transform.Find(paramRebasePath) == null)
+                {
+                    Debug.LogWarning($"[Phantom System] Relink parameter exception error. Rebased path '{paramRebasePath}' dose not exsit. This should not happen :(");
+                    continue;
+                }
+                ctx.ExceptionParameters.Add(BaseAvatar.transform.Find(paramRebasePath).gameObject.GetComponent<ModularAvatarParameters>());
+            }
+        }
+
         private AvatarObjectReference RebaseAvatarObjectReference(SetupContext ctx, AvatarObjectReference obj)
         {
             string newPath;
             AvatarObjectReference newObj = new AvatarObjectReference();
 
-            if (!obj.referencePath.StartsWith("PhantomSystem/PhantomAvatar/"))
+            newPath = RebasePhantomPath(ctx, obj.referencePath);
+            if (BaseAvatar.transform.Find(newPath) == null)
             {
-                newPath = obj.referencePath;
-                if (obj.referencePath.StartsWith(ctx.PhantomAmaturePath))
-                {
-                    var NewArmaturePath = GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform);
-                    newPath = NewArmaturePath + newPath.Substring(ctx.PhantomAmaturePath.Length);
-                }
-                else
-                {
-                    newPath = "PhantomSystem/PhantomAvatar/" + newPath;
-                }
-                newObj.Set(BaseAvatar.transform.Find(newPath).gameObject);
-                return newObj;
+                Debug.LogWarning($"[Phantom System] Cannot rebase the AvatarObjectReference '{obj.referencePath}'.Rebased path '{newPath}' does not exsit.");
+                return obj;
             }
-            return obj;
+            newObj.Set(BaseAvatar.transform.Find(newPath).gameObject);  
+            return newObj;
         }
         #endregion
     }
