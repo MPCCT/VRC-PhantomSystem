@@ -110,7 +110,7 @@ BlendTree:
   m_Name: PhantomViewAdjust
   m_Childs:
   - serializedVersion: 2
-    m_Motion: {fileID: 6013054573063350339}
+    m_Motion: {fileID: 2481317897806522902}
     m_Threshold: 0
     m_Position: {x: 0, y: 0}
     m_TimeScale: 1
@@ -118,8 +118,16 @@ BlendTree:
     m_DirectBlendParameter: PhantomViewWeight
     m_Mirror: 0
   - serializedVersion: 2
+    m_Motion: {fileID: 6013054573063350339}
+    m_Threshold: 0.33333334
+    m_Position: {x: 0, y: 0}
+    m_TimeScale: 1
+    m_CycleOffset: 0
+    m_DirectBlendParameter: PhantomViewWeight
+    m_Mirror: 0
+  - serializedVersion: 2
     m_Motion: {fileID: -8057399467385281304}
-    m_Threshold: 0.5
+    m_Threshold: 0.6666667
     m_Position: {x: 0, y: 0}
     m_TimeScale: 1
     m_CycleOffset: 0
@@ -149,6 +157,37 @@ BlendTree:
   m_Name: BlendTree
   m_Childs: []
   m_BlendParameter: ViewSize
+  m_BlendParameterY: Blend
+  m_MinThreshold: 0
+  m_MaxThreshold: 1
+  m_UseAutomaticThresholds: 1
+  m_NormalizedBlendValues: 0
+  m_BlendType: 0
+--- !u!206 &2481317897806522902
+BlendTree:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: PhantomViewOn
+  m_Childs:
+  - serializedVersion: 2
+    m_Motion: {fileID: 7400000, guid: ec2d053fd9714b04e9088a34b64ba29d, type: 2}
+    m_Threshold: 0
+    m_Position: {x: 0, y: 0}
+    m_TimeScale: 1
+    m_CycleOffset: 0
+    m_DirectBlendParameter: PhantomViewWeight
+    m_Mirror: 0
+  - serializedVersion: 2
+    m_Motion: {fileID: 7400000, guid: b24502a43622aaa4880e83cb38a15daf, type: 2}
+    m_Threshold: 1
+    m_Position: {x: 0, y: 0}
+    m_TimeScale: 1
+    m_CycleOffset: 0
+    m_DirectBlendParameter: PhantomViewWeight
+    m_Mirror: 0
+  m_BlendParameter: PhantomViewOn
   m_BlendParameterY: Blend
   m_MinThreshold: 0
   m_MaxThreshold: 1

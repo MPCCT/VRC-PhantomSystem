@@ -687,7 +687,6 @@ namespace MPCCT
             // PositionLockOn: BaseAvatarPosition constraint disable freeze to world
             anim.PositionLockOn.SetCurve(GetRelativePath(BaseAvatarPosition.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
             // PositionLockOn: Armature Constraint disable freeze to world
-            anim.PositionLockOn.SetCurve(GetRelativePath(ArmatureConstraintTarget.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
             anim.PositionLockOn.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
             // PositionLockOn: PahntomSystem constraint set to 1st source
             anim.PositionLockOn.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "Sources.source0.Weight", AnimationCurve.Constant(0, 0, 1));
@@ -696,22 +695,36 @@ namespace MPCCT
             // PositionLockOff: BaseAvatarPosition constraint freeze to world
             anim.PositionLockOff.SetCurve(GetRelativePath(BaseAvatarPosition.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
             // PositionLockOff: Armature Constraint disable freeze to world
-            anim.PositionLockOff.SetCurve(GetRelativePath(ArmatureConstraintTarget.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
             anim.PositionLockOff.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 0));
             // PositionLockOff: PahntomSystem constraint set to 1st source
             anim.PositionLockOff.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "Sources.source0.Weight", AnimationCurve.Constant(0, 0, 1));
             anim.PositionLockOff.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "Sources.source1.Weight", AnimationCurve.Constant(0, 0, 0));
 
+
+            // PositionLockPrepare: create curves for keyframes
             float dt = 1.0f / 60.0f;
+
+            AnimationCurve freezeToWorldCurve = new AnimationCurve();
+            AnimationCurve solveInLocalSpaceCurve = new AnimationCurve();
+
+            freezeToWorldCurve.AddKey(0, 1);
+            freezeToWorldCurve.AddKey(dt, 0);
+            AnimationUtility.SetKeyRightTangentMode(freezeToWorldCurve, 0, AnimationUtility.TangentMode.Constant);
+
+            solveInLocalSpaceCurve.AddKey(0, 0);
+            solveInLocalSpaceCurve.AddKey(2 * dt, 1);
+            AnimationUtility.SetKeyRightTangentMode(solveInLocalSpaceCurve, 0, AnimationUtility.TangentMode.Constant);
+
             // PositionLockPrepare: BaseAvatarPosition constraint and PhantomSystem constraint disable freeze to world
-            anim.PositionLockPrepare.SetCurve(GetRelativePath(BaseAvatarPosition.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(dt, dt, 0));
-            anim.PositionLockPrepare.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(dt, dt, 0));
+            anim.PositionLockPrepare.SetCurve(GetRelativePath(BaseAvatarPosition.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", freezeToWorldCurve);
+            anim.PositionLockPrepare.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", freezeToWorldCurve);
             // PositionLockPrepare: Armature Constraint freeze to world
-            anim.PositionLockPrepare.SetCurve(GetRelativePath(ArmatureConstraintTarget.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
             anim.PositionLockPrepare.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
             // PositionLockPrepare: PahntomSystem constraint set to 2nd source
-            anim.PositionLockPrepare.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "Sources.source0.Weight", AnimationCurve.Constant(0, 0, 0));
-            anim.PositionLockPrepare.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "Sources.source1.Weight", AnimationCurve.Constant(0, 0, 1));
+            anim.PositionLockPrepare.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "Sources.source0.Weight", AnimationCurve.Constant(dt, dt, 0));
+            anim.PositionLockPrepare.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "Sources.source1.Weight", AnimationCurve.Constant(dt, dt, 1));
+            // PositionLockPrepare: Armature Constraint disable solve in local space
+            anim.PositionLockPrepare.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "SolveInLocalSpace", solveInLocalSpaceCurve);
         }
 
         private void SetupBoneConstraints(SetupContext ctx, SetupAnimation anim)
@@ -1140,7 +1153,7 @@ namespace MPCCT
                 tempRelativePathRoot.Set(ctx.PhantomAvatarRoot);
                 PhantomAvatarMAMergeAnimator.relativePathRoot = tempRelativePathRoot;
                 PhantomAvatarMAMergeAnimator.matchAvatarWriteDefaults = true;
-                PhantomAvatarMAMergeAnimator.layerPriority = -1;
+                PhantomAvatarMAMergeAnimator.layerPriority = 10;
             }
 
             if (PhantomAvatar.customExpressions)

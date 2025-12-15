@@ -123,6 +123,7 @@ MonoBehaviour:
   collisionFilter:
     allowSelf: 1
     allowOthers: 1
+    contentTypes: -1
   radius: 0
   radiusCurve:
     serializedVersion: 2
@@ -169,10 +170,12 @@ MonoBehaviour:
   grabFilter:
     allowSelf: 1
     allowOthers: 1
+    contentTypes: -1
   allowPosing: 1
   poseFilter:
     allowSelf: 1
     allowOthers: 1
+    contentTypes: -1
   snapToHand: 0
   grabMovement: 0.5
   maxStretch: 0
@@ -325,11 +328,11 @@ MonoBehaviour:
   layerType: 5
   deleteAttachedAnimator: 1
   pathMode: 0
-  matchAvatarWriteDefaults: 1
+  matchAvatarWriteDefaults: 0
   relativePathRoot:
     referencePath: 
     targetObject: {fileID: 0}
-  layerPriority: 0
+  layerPriority: 11
   mergeAnimatorMode: 0
 --- !u!114 &2503691799308936464
 MonoBehaviour:
