@@ -185,6 +185,9 @@ namespace MPCCT
             public Dictionary<HumanBodyBones, string> PhantomBonePaths = new Dictionary<HumanBodyBones, string>();
             public List<ModularAvatarParameters> ExceptionParameters = new List<ModularAvatarParameters>();
             public string PhantomAmaturePath;
+
+            public int BaseAvatarAnimatorMaxPriority = 0;
+            public int PhantomAvatarAnimatorMaxPriority = 0;
         }
 
         // Class to hold animation clips and controller
@@ -549,6 +552,8 @@ namespace MPCCT
 
         private void PhantomSystemInit(SetupContext ctx)
         {
+            CalMAMergeAnimatorPriority(ctx);
+
             ctx.PhantomSystem = new GameObject("PhantomSystem");
             ctx.PhantomSystem.transform.parent = BaseAvatar.transform;
 
@@ -581,7 +586,16 @@ namespace MPCCT
             ctx.PhantomAnimator = ctx.PhantomAvatarRoot.GetComponent<Animator>();
             ctx.BaseAnimator = BaseAvatar.GetComponent<Animator>();
         }
+        private void CalMAMergeAnimatorPriority(SetupContext ctx)
+        {
+            var BaseAvatarMAMergeAnimators = BaseAvatar.GetComponentsInChildren<ModularAvatarMergeAnimator>(true);
+            var PhantomAvatarMAMergeAnimators = PhantomAvatar.GetComponentsInChildren<ModularAvatarMergeAnimator>(true);
 
+            var BaseAvatarLayerPriorities = BaseAvatarMAMergeAnimators.Select(anim => anim.layerPriority).ToList();
+            var PhantomAvatarLayerPriorities = PhantomAvatarMAMergeAnimators.Select(anim => anim.layerPriority).ToList();
+            ctx.BaseAvatarAnimatorMaxPriority = BaseAvatarLayerPriorities.Count > 0 ? BaseAvatarLayerPriorities.Max() : 0;
+            ctx.PhantomAvatarAnimatorMaxPriority = PhantomAvatarLayerPriorities.Count > 0 ? PhantomAvatarLayerPriorities.Max() : 0;
+        }
         private void SetupArmatureConstraint(SetupContext ctx, SetupAnimation anim)
         {
             ctx.PhantomArmature = ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips).parent;
@@ -975,6 +989,15 @@ namespace MPCCT
             }
             else
             {
+                // Change MAMergeAnimator Priority
+                foreach (var animator in MAMergeAnimator)
+                {
+                    animator.layerPriority = animator.layerPriority + ctx.BaseAvatarAnimatorMaxPriority + 2;
+                    EditorUtility.SetDirty(animator);
+                    if (PrefabUtility.IsPartOfPrefabInstance(animator))
+                        PrefabUtility.RecordPrefabInstancePropertyModifications(animator);
+                }
+
                 // Rebase MA menus and parameters
                 if (!Directory.Exists(GeneratedMenuPath))
                 {
@@ -1066,7 +1089,10 @@ namespace MPCCT
             GameObject MAPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(IsRemovePhantomMenu ? MAPrefabPath_NoPhantomMenu : MAPrefabPath);
             GameObject MAPrefabInstance = (GameObject)PrefabUtility.InstantiatePrefab(MAPrefab, ctx.PhantomSystem.transform);
             MAPrefabInstance.name = "PhantomMA";
-            MAPrefabInstance.GetComponent<ModularAvatarMergeAnimator>().animator = anim.PhantomController;
+
+            var MAPrefabAnimator = MAPrefabInstance.GetComponent<ModularAvatarMergeAnimator>();
+            MAPrefabAnimator.animator = anim.PhantomController;
+            MAPrefabAnimator.layerPriority = ctx.PhantomAvatarAnimatorMaxPriority + ctx.BaseAvatarAnimatorMaxPriority + 3;
 
             // Localize Menu
             switch (currentLocale)
@@ -1110,6 +1136,10 @@ namespace MPCCT
             PhantomAvatarViewPointMA.subPath = ctx.PhantomBonePaths[HumanBodyBones.Head];
             PhantomAvatarViewPointMA.boneReference = HumanBodyBones.LastBone;
 
+            var ViewSystemAnimator = ViewSystem.GetComponent<ModularAvatarMergeAnimator>();
+            ViewSystemAnimator.layerPriority = ctx.PhantomAvatarAnimatorMaxPriority + ctx.BaseAvatarAnimatorMaxPriority + 4;
+
+            // Localize Menu
             switch (currentLocale)
             {
                 case Locale.Chinese:
@@ -1153,7 +1183,7 @@ namespace MPCCT
                 tempRelativePathRoot.Set(ctx.PhantomAvatarRoot);
                 PhantomAvatarMAMergeAnimator.relativePathRoot = tempRelativePathRoot;
                 PhantomAvatarMAMergeAnimator.matchAvatarWriteDefaults = true;
-                PhantomAvatarMAMergeAnimator.layerPriority = 10;
+                PhantomAvatarMAMergeAnimator.layerPriority = ctx.BaseAvatarAnimatorMaxPriority + 1;
             }
 
             if (PhantomAvatar.customExpressions)

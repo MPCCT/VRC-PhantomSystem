@@ -54,7 +54,7 @@ MonoBehaviour:
   relativePathRoot:
     referencePath: 
     targetObject: {fileID: 0}
-  layerPriority: 10
+  layerPriority: 0
   mergeAnimatorMode: 0
 --- !u!114 &5073196668549220307
 MonoBehaviour:
