@@ -105,7 +105,10 @@ namespace MPCCT
             ["PhantomAvatarAnimatorError"] = ("Phantom Avatar must be humanoid.", "分身模型需为humanoid", "ファントムアバターはヒューマノイドである必要があります"),
             ["ReferenceControllerNotFound"] = ("Reference animation controller not found. Please reinstall PhantomSystem", "未找到参考动画控制器。请重装PhantomSystem", "参照用アニメーションコントローラーが見つかりません。PhantomSystemを再インストールしてください"),
             ["ReferenceControllerError"] = ("Reference animation controller is broken. Please reinstall PhantomSystem", "参考动画控制器损坏。请重装PhantomSystem", "参照用アニメーションコントローラーが壊れています。PhantomSystemを再インストールしてください"),
-            ["UnsupportedComponentsWarning"] = ("Unsupported components found on Phantom Avatar. This may cause some issues.", "分身模型上检测到不支持的组件。这可能会导致一些问题。", "ファントムアバターにサポートされていないコンポーネントが見つかりました。問題が発生する可能性があります"),
+            ["UnsupportedComponentsWarning"] = (
+                "Unsupported components found on Phantom Avatar. This may cause some issues. If they do not modify animation layers you can usually ignore this warning; otherwise inspect and fix/remove the offending components.",
+                "在分身模型上检测到不受支持的组件，可能会导致功能异常。通常如果这些组件不修改模型的动画层，可以忽略此警告；若怀疑会产生影响，请检查并移除或替换相关组件。",
+                "ファントムアバター上にサポート対象外のコンポーネントが見つかりました。これにより不具合が発生する可能性があります。通常、これらのコンポーネントがアバターのアニメーション層を変更しない場合は無視できますが、影響が疑われる場合は確認して削除または置換してください。"),
             ["ShowUnsupportedComponents"] = ("Unsupported Components", "不支持的组件", "サポート外コンポーネント")
         };
 
@@ -290,7 +293,7 @@ namespace MPCCT
         private void OnGUI()
         {
             // Title
-            EditorGUILayout.LabelField("PhantomSystem v0.2.8-alpha Made By MPCCT");
+            EditorGUILayout.LabelField("PhantomSystem v1.0.0 preview Made By MPCCT");
 
             // Language selection
             string[] localeOptions = new[] { "English", "中文", "日本語" };
