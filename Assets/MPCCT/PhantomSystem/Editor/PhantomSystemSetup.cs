@@ -49,29 +49,30 @@ namespace MPCCT
         private Locale currentLocale = Locale.English;
         #endregion
 
-        #region --- Constants & Texts ---
-        private const string MAPrefabPath = "Assets/MPCCT/PhantomSystem/Prefab/PhantomMA.prefab";
-        private const string MAPrefabPath_NoPhantomMenu = "Assets/MPCCT/PhantomSystem/Prefab/PhantomMA_NoPhantomMenu.prefab";
-        private const string ReferenceAnimationPath = "Assets/MPCCT/PhantomSystem/Animation/PhantomSystem_FX_Reference.controller";
-        private const string PhantomMenuPath = "Assets/MPCCT/PhantomSystem/Menu/PhantomSystemPhantomMenu.asset";
-        private const string ViewSystemPrefabPath = "Assets/MPCCT/PhantomSystem/ViewSystem/Prefab/PhantomView.prefab";
-        private const string ViewSystemPrefabPath_NoPhantomMenu = "Assets/MPCCT/PhantomSystem/ViewSystem/Prefab/PhantomView_NoPhantomMenu.prefab";
-        private const string GrabPrefabPath = "Assets/MPCCT/PhantomSystem/Prefab/GrabRoot.prefab";
+        #region --- Paths & Texts ---
+        private static string MainFolder => ResolveAssetPath("MainFolder");
+        private static string GeneratedMainFolder => $"{MainFolder}/~Generated";
 
-        private const string GeneratedMainFolder = "Assets/MPCCT/PhantomSystem/~Generated";
+        private static string MAPrefabPath => ResolveAssetPath("MAPrefab");
+        private static string MAPrefabPath_NoPhantomMenu => ResolveAssetPath("MAPrefab_NoPhantomMenu");
+        private static string ReferenceAnimationPath => ResolveAssetPath("ReferenceAnimation");
+        private static string PhantomMenuPath => ResolveAssetPath("PhantomMenu");
+        private static string ViewSystemPrefabPath => ResolveAssetPath("ViewSystemPrefab");
+        private static string ViewSystemPrefabPath_NoPhantomMenu => ResolveAssetPath("ViewSystemPrefab_NoPhantomMenu");
+        private static string GrabPrefabPath => ResolveAssetPath("GrabPrefab");
 
-        private const string LocalMainMenuPath_zh = "Assets/MPCCT/PhantomSystem/Menu/Menu_zh/PhantomSystemMain_zh.asset";
-        private const string LocalMainMenuPath_jp = "Assets/MPCCT/PhantomSystem/Menu/Menu_jp/PhantomSystemMain_jp.asset";
-        private const string LocalSubMenuPath_zh = "Assets/MPCCT/PhantomSystem/Menu/Menu_zh/PhantomSystemSub_zh.asset";
-        private const string LocalSubMenuPath_jp = "Assets/MPCCT/PhantomSystem/Menu/Menu_jp/PhantomSystemSub_jp.asset";
+        private static string LocalMainMenuPath_zh => ResolveAssetPath("LocalMainMenu_zh");
+        private static string LocalMainMenuPath_jp => ResolveAssetPath("LocalMainMenu_jp");
+        private static string LocalSubMenuPath_zh => ResolveAssetPath("LocalSubMenu_zh");
+        private static string LocalSubMenuPath_jp => ResolveAssetPath("LocalSubMenu_jp");
 
-        private const string LocalMainMenu_NoPhantomMenuPath_zh = "Assets/MPCCT/PhantomSystem/Menu/Menu_zh/PhantomSystemMain_NoPhantomMenu_zh.asset";
-        private const string LocalMainMenu_NoPhantomMenuPath_jp = "Assets/MPCCT/PhantomSystem/Menu/Menu_jp/PhantomSystemMain_NoPhantomMenu_jp.asset";
-        private const string LocalSubMenu_NoPhantomMenuPath_zh = "Assets/MPCCT/PhantomSystem/Menu/Menu_zh/PhantomSystemSub_NoPhantomMenu_zh.asset";
-        private const string LocalSubMenu_NoPhantomMenuPath_jp = "Assets/MPCCT/PhantomSystem/Menu/Menu_jp/PhantomSystemSub_NoPhantomMenu_jp.asset";
+        private static string LocalMainMenu_NoPhantomMenuPath_zh => ResolveAssetPath("LocalMainMenu_NoPhantomMenu_zh");
+        private static string LocalMainMenu_NoPhantomMenuPath_jp => ResolveAssetPath("LocalMainMenu_NoPhantomMenu_jp");
+        private static string LocalSubMenu_NoPhantomMenuPath_zh => ResolveAssetPath("LocalSubMenu_NoPhantomMenu_zh");
+        private static string LocalSubMenu_NoPhantomMenuPath_jp => ResolveAssetPath("LocalSubMenu_NoPhantomMenu_jp");
 
-        private const string LocalViewSysMenuPath_zh = "Assets/MPCCT/PhantomSystem/ViewSystem/Menu/Menu_zh/ViewMain_zh.asset";
-        private const string LocalViewSysMenuPath_jp = "Assets/MPCCT/PhantomSystem/ViewSystem/Menu/Menu_jp/ViewMain_jp.asset";
+        private static string LocalViewSysMenuPath_zh => ResolveAssetPath("LocalViewSysMenu_zh");
+        private static string LocalViewSysMenuPath_jp => ResolveAssetPath("LocalViewSysMenu_jp");
 
         private static readonly Dictionary<string, (string en, string zh, string jp)> s_texts = new Dictionary<string, (string, string, string)>
         {
@@ -103,7 +104,7 @@ namespace MPCCT
             ["PhantomAvatarAnimatorNotFound"] = ("Phantom Avatar's animator component not found", "未能找到分身模型的Animator组件", "ファントムアバターのアニメーターコンポーネントが見つかりません"),
             ["BaseAvatarAnimatorError"] = ("Base Avatar must be humanoid.", "基础模型需为humanoid", "ベースアバターはヒューマノイドである必要があります"),
             ["PhantomAvatarAnimatorError"] = ("Phantom Avatar must be humanoid.", "分身模型需为humanoid", "ファントムアバターはヒューマノイドである必要があります"),
-            ["ReferenceControllerNotFound"] = ("Reference animation controller not found. Please reinstall PhantomSystem", "未找到参考动画控制器。请重装PhantomSystem", "参照用アニメーションコントローラーが見つかりません。PhantomSystemを再インストールしてください"),
+            ["AssetsNotFound"] = (" not found. Please reinstall PhantomSystem", "未找到。请重装PhantomSystem", "が見つかりません。PhantomSystemを再インストールしてください"),
             ["ReferenceControllerError"] = ("Reference animation controller is broken. Please reinstall PhantomSystem", "参考动画控制器损坏。请重装PhantomSystem", "参照用アニメーションコントローラーが壊れています。PhantomSystemを再インストールしてください"),
             ["UnsupportedComponentsWarning"] = (
                 "Unsupported components found on Phantom Avatar. This may cause some issues. If they do not modify animation layers you can usually ignore this warning; otherwise inspect and fix/remove the offending components.",
@@ -127,7 +128,7 @@ namespace MPCCT
         }
 
         private static readonly Type[] ComponentsWhiteList = new Type[]
-        { 
+        {
             // VRC
             typeof(VRCAvatarDescriptor),
             typeof(VRCPositionConstraint),
@@ -254,7 +255,7 @@ namespace MPCCT
                     else if (state.state.name == "PhantomFreezeOff") state.state.motion = PhantomFreezeOff;
                     else if (state.state.name == "PhantomFreeze") state.state.motion = PhantomFreeze;
                 }
-                
+
                 foreach (var state in PositionLockStateMachine.states)
                 {
                     if (state.state.name == "PositionLockOn") state.state.motion = PositionLockOn;
@@ -467,13 +468,20 @@ namespace MPCCT
                 }
             }
 
+            // Asset existence
+            var PhantomSystemAssetDataKeys = PhantomSystemAssetData.GetAllKeys();
+            foreach (var key in PhantomSystemAssetDataKeys)
+            {
+                var path = PhantomSystemAssetData.ResolvePath(key);
+                if (string.IsNullOrEmpty(path))
+                {
+                    errors.Add(key + T("AssetsNotFound"));
+                }
+            }
+
             // Reference animation controller validity
             var refController = AssetDatabase.LoadAssetAtPath<AnimatorController>(ReferenceAnimationPath);
-            if (refController == null)
-            {
-                errors.Add(T("ReferenceControllerNotFound"));
-            }
-            else if (refController.layers == null || refController.layers.Length < 3)
+            if (refController.layers == null || refController.layers.Length < 3)
             {
                 errors.Add(T("ReferenceControllerError"));
             }
@@ -1428,6 +1436,14 @@ namespace MPCCT
             }
             newObj.Set(BaseAvatar.transform.Find(newPath).gameObject);  
             return newObj;
+        }
+
+        // Resolve asset paths via PhantomSystemAssetData.
+        private static string ResolveAssetPath(string key)
+        {
+            var p = PhantomSystemAssetData.ResolvePath(key);
+            if (!string.IsNullOrEmpty(p)) return p;
+            return null;
         }
         #endregion
     }

@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8acff3b8d8da8e948a6e72a666142472, type: 3}
+  m_Name: PhantomSystem_AssetData
+  m_EditorClassIdentifier: 
+  entries:
+  - key: MainFolder
+    guid: 1890e699f8d9e584a908af8b16ea409c
+  - key: MAPrefab
+    guid: 960e3251a5662a94fb6b0b089c14d323
+  - key: MAPrefab_NoPhantomMenu
+    guid: 85673e93dfac5904c87c4d0e4f1d4415
+  - key: ReferenceAnimation
+    guid: c13261f4291a0e643aec3a6448a9f55e
+  - key: PhantomMenu
+    guid: f7baeed80f640f847a0650eb267cb0fa
+  - key: ViewSystemPrefab
+    guid: d28d054e38fd7044c9540e102d305bad
+  - key: ViewSystemPrefab_NoPhantomMenu
+    guid: 0e4e0ba589c7aa540b09c935d8a2562b
+  - key: GrabPrefab
+    guid: 7b29f1c9881b85745bda0fff1baf7133
+  - key: LocalMainMenu_zh
+    guid: 03bedc05f65d97c48b98697d9d38c121
+  - key: LocalMainMenu_jp
+    guid: 71fd594aba43cde43a58817341521b1f
+  - key: LocalSubMenu_zh
+    guid: 8d84c468ccbaccc4e941fce18f4ce2f0
+  - key: LocalSubMenu_jp
+    guid: d00d4284aec2dbc49b8d2f3703558dc7
+  - key: LocalMainMenu_NoPhantomMenu_zh
+    guid: eeb6d6ad5a447ec4aa201c77526db1f6
+  - key: LocalMainMenu_NoPhantomMenu_jp
+    guid: 16151383ba1700140b4f08dda4abe2ca
+  - key: LocalSubMenu_NoPhantomMenu_zh
+    guid: 1f6f215d9f208eb47b5a32387a0b3cb3
+  - key: LocalSubMenu_NoPhantomMenu_jp
+    guid: 993e5a0f5c4dc604b80d349567487f72
+  - key: LocalViewSysMenu_zh
+    guid: 60562f143038cf94cb0528e69f1743ed
+  - key: LocalViewSysMenu_jp
+    guid: dfa8dc9dfd0c54547917afc2e88100bb
