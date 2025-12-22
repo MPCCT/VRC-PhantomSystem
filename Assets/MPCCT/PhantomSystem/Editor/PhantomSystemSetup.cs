@@ -675,6 +675,7 @@ namespace MPCCT
                 }
             };
             ArmatureConstraint.enabled = true;
+            ArmatureConstraint.FreezeToWorld = true;
             ArmatureConstraint.SolveInLocalSpace = true;
 
             // PhantomOFF: deactivate PhantomAvatar
