@@ -41,6 +41,7 @@ namespace MPCCT
         private Vector2 componentsScrollPosition = Vector2.zero;
 
         private HashSet<string> SavedMenuGUID = new HashSet<string>();
+        private HashSet<string> MenuCopyErrorKeys = new HashSet<string>();
 
         private string GeneratedAnimationPath;
         private string GeneratedMenuPath;
@@ -76,41 +77,41 @@ namespace MPCCT
 
         private static readonly Dictionary<string, (string en, string zh, string jp)> s_texts = new Dictionary<string, (string, string, string)>
         {
-            ["LanguageLabel"] = ("Language", "ÓïÑÔ", "ÑÔÕZ"),
-            ["BaseAvatar"] = ("Base Avatar", "»ù´¡Ä£ĞÍ", "¥Ù©`¥¹¥¢¥Ğ¥¿©`"),
-            ["PhantomAvatar"] = ("Phantom Avatar", "·ÖÉíÄ£ĞÍ", "¥Õ¥¡¥ó¥È¥à¥¢¥Ğ¥¿©`"),
-            ["RenameParameters"] = ("Rename phantom avatar parameters", "ÖØÃüÃû·ÖÉíÄ£ĞÍµÄ²ÎÊı", "¥Õ¥¡¥ó¥È¥à¥¢¥Ğ¥¿©`¤Î¥Ñ¥é¥á©`¥¿¤ò¥ê¥Í©`¥à¤¹¤ë"),
-            ["Exceptions"] = ("Exceptions", "ÀıÍâÏî", "ÀıÍâ"),
-            ["ExceptionsMessage"] = ("The following Modular Avatar Parameters will NOT be renamed.", "ÒÔÏÂModular Avatar Parameters½«²»»á±»ÖØÃüÃû¡£", "ÒÔÏÂ¤ÎModular Avatar Parameters¤Ï¥ê¥Í©`¥à¤µ¤ì¤Ş¤»¤ó¡£"),
-            ["ChooseAllParameters"] = ("Choose All Modular Avatar Parameters", "Ñ¡ÔñËùÓĞModular Avatar Parameters", "¤¹¤Ù¤Æ¤ÎModular Avatar Parameters¤òßx’k"),
-            ["DragMessage"] = ("Drag Modular Avatar Parameters here to add to exceptions", "½«Modular Avatar ParametersÍÏ×§µ½´Ë´¦ÒÔÌí¼Óµ½ÀıÍâÏî", "Modular Avatar Parameters¤ò¤³¤³¤Ë¥É¥é¥Ã¥°¤·¤ÆÀıÍâ¤Ë×·¼Ó"),
-            ["RemoveViewSystem"] = ("Remove phantom view window", "È¥³ı·ÖÉíÊÓ½Ç´°¿Ú", "¥Õ¥¡¥ó¥È¥à¤Î¥Ó¥å©`¥¦¥£¥ó¥É¥¦¤òÏ÷³ı"),
-            ["AdvancedSettings"] = ("Advanced Settings", "¸ß¼¶ÉèÖÃ", "Ô”¼šÔO¶¨"),
-            ["RemovePhantomMenu"] = ("Remove phantom avatar menu", "È¥³ı·ÖÉíÄ£ĞÍ²Ëµ¥", "¥Õ¥¡¥ó¥È¥à¥¢¥Ğ¥¿©`¥á¥Ë¥å©`¤òÏ÷³ı"),
-            ["RemovePhantomAvatarMA"] = ("Remove Modular Avatar components from phantom", "È¥³ı·ÖÉíÄ£ĞÍMA×é¼ş", "¥Õ¥¡¥ó¥È¥à¤ÎModular Avatar¥³¥ó¥İ©`¥Í¥ó¥È¤òÏ÷³ı"),
-            ["RemoveOriginalAnimator"] = ("Remove Phantom Avatar's original FX", "È¥³ı·ÖÉíÄ£ĞÍÔ­Ê¼FX", "¥Õ¥¡¥ó¥È¥à¥¢¥Ğ¥¿©`¤ÎÔª¤ÎFX¤òÏ÷³ı"),
-            ["ChangePBImmobileType"] = ("Change PhysBone ImmobileType (may break some physbones)", "¸ü¸Ä·ÖÉíÄ£ĞÍ¶¯¹ÇImmobileType£¨¿ÉÄÜ»áÊ¹·ÖÉíÉÏ²¿·Ö¶¯¹ÇÒì³££©", "PhysBone¤ÎImmobileType¤ò‰ä¸ü£¨Ò»²¿ÎïÀí¥Ü©`¥ó¤¬Õı³£¤Ë„Ó×÷¤·¤Ê¤¯¤Ê¤ë¿ÉÄÜĞÔ¤¢¤ê£©"),
-            ["UseRotationConstraint"] = ("Use Rotation Constraint (useful when bone hierarchies differ)", "Ê¹ÓÃRotation Constraint£¨·ÖÉíÄ£ĞÍºÍ»ù´¡Ä£ĞÍ¹Ç÷À²»Í¬Ê±¿ÉÄÜÓĞÓÃ£©", "»ØÜÖÆ¼s¤òÊ¹ÓÃ£¨¥Ü©`¥óëAŒÓ¤¬®¤Ê¤ëˆöºÏ¤ËÓĞ„¿£©"),
-            ["RotationSolveInWorldSpace"] = ("Solve constraint in world space (may affect facing direction)", "Ê¹ÓÃÊÀ½ç¿Õ¼äÉÏµÄÔ¼Êø£¨¶ÔÓÚÄ£ĞÍ²»ÊÊÅä¿ÉÄÜÓĞÓÃ£¬»áµ¼ÖÂÄ£ĞÍÃæ³¯·½Ïò²»¹Ì¶¨ÔÚÊÀ½ç£©", "¥ï©`¥ë¥É¿Õég¤ÇÖÆ¼s¤ò½â›Q£¨Ïò¤­¤¬¹Ì¶¨¤µ¤ì¤Ê¤¯¤Ê¤ë¿ÉÄÜĞÔ¤¢¤ê£©"),
-            ["StartButton"] = ("Setup!", "¿ªÊ¼ÅäÖÃ£¡", "¥»¥Ã¥È¥¢¥Ã¥×é_Ê¼£¡"),
-            ["SuccessTitle"] = ("Success", "³É¹¦", "³É¹¦"),
-            ["SuccessMessage"] = ("Setup completed!", "ÅäÖÃÍê³É£¡", "¥»¥Ã¥È¥¢¥Ã¥×¤¬ÍêÁË¤·¤Ş¤·¤¿£¡"),
-            ["ErrorTitle"] = ("Error!", "´íÎó!", "¥¨¥é©`£¡"),
-            ["ErrorMessage"] = ("An error occurred. See Console.", "³öÏÖ´íÎó£¬Çë²é¿´Console", "¥¨¥é©`¤¬°kÉú¤·¤Ş¤·¤¿¡£¥³¥ó¥½©`¥ë¤ò´_ÕJ¤·¤Æ¤¯¤À¤µ¤¤¡£"),
-            ["OK"] = ("OK", "È·¶¨", "OK"),
-            ["BaseAvatarValidationError"] = ("Base Avatar must be set.", "Î´ÉèÖÃ»ù´¡Ä£ĞÍ", "¥Ù©`¥¹¥¢¥Ğ¥¿©`¤òÔO¶¨¤¹¤ë±ØÒª¤¬¤¢¤ê¤Ş¤¹"),
-            ["PhantomAvatarValidationError"] = ("Phantom Avatar must be set.", "Î´ÉèÖÃ·ÖÉíÄ£ĞÍ", "¥Õ¥¡¥ó¥È¥à¥¢¥Ğ¥¿©`¤òÔO¶¨¤¹¤ë±ØÒª¤¬¤¢¤ê¤Ş¤¹"),
-            ["BaseAvatarAnimatorNotFound"] = ("Base Avatar's animator component not found", "Î´ÄÜÕÒµ½»ù´¡Ä£ĞÍµÄAnimator×é¼ş", "¥Ù©`¥¹¥¢¥Ğ¥¿©`¤Î¥¢¥Ë¥á©`¥¿©`¥³¥ó¥İ©`¥Í¥ó¥È¤¬ÒŠ¤Ä¤«¤ê¤Ş¤»¤ó"),
-            ["PhantomAvatarAnimatorNotFound"] = ("Phantom Avatar's animator component not found", "Î´ÄÜÕÒµ½·ÖÉíÄ£ĞÍµÄAnimator×é¼ş", "¥Õ¥¡¥ó¥È¥à¥¢¥Ğ¥¿©`¤Î¥¢¥Ë¥á©`¥¿©`¥³¥ó¥İ©`¥Í¥ó¥È¤¬ÒŠ¤Ä¤«¤ê¤Ş¤»¤ó"),
-            ["BaseAvatarAnimatorError"] = ("Base Avatar must be humanoid.", "»ù´¡Ä£ĞÍĞèÎªhumanoid", "¥Ù©`¥¹¥¢¥Ğ¥¿©`¤Ï¥Ò¥å©`¥Ş¥Î¥¤¥É¤Ç¤¢¤ë±ØÒª¤¬¤¢¤ê¤Ş¤¹"),
-            ["PhantomAvatarAnimatorError"] = ("Phantom Avatar must be humanoid.", "·ÖÉíÄ£ĞÍĞèÎªhumanoid", "¥Õ¥¡¥ó¥È¥à¥¢¥Ğ¥¿©`¤Ï¥Ò¥å©`¥Ş¥Î¥¤¥É¤Ç¤¢¤ë±ØÒª¤¬¤¢¤ê¤Ş¤¹"),
-            ["AssetsNotFound"] = (" not found. Please reinstall PhantomSystem", "Î´ÕÒµ½¡£ÇëÖØ×°PhantomSystem", "¤¬ÒŠ¤Ä¤«¤ê¤Ş¤»¤ó¡£PhantomSystem¤òÔÙ¥¤¥ó¥¹¥È©`¥ë¤·¤Æ¤¯¤À¤µ¤¤"),
-            ["ReferenceControllerError"] = ("Reference animation controller is broken. Please reinstall PhantomSystem", "²Î¿¼¶¯»­¿ØÖÆÆ÷Ëğ»µ¡£ÇëÖØ×°PhantomSystem", "²ÎÕÕÓÃ¥¢¥Ë¥á©`¥·¥ç¥ó¥³¥ó¥È¥í©`¥é©`¤¬‰²¤ì¤Æ¤¤¤Ş¤¹¡£PhantomSystem¤òÔÙ¥¤¥ó¥¹¥È©`¥ë¤·¤Æ¤¯¤À¤µ¤¤"),
+            ["LanguageLabel"] = ("Language", "è¯­è¨€", "è¨€èª"),
+            ["BaseAvatar"] = ("Base Avatar", "åŸºç¡€æ¨¡å‹", "ãƒ™ãƒ¼ã‚¹ã‚¢ãƒã‚¿ãƒ¼"),
+            ["PhantomAvatar"] = ("Phantom Avatar", "åˆ†èº«æ¨¡å‹", "ãƒ•ã‚¡ãƒ³ãƒˆãƒ ã‚¢ãƒã‚¿ãƒ¼"),
+            ["RenameParameters"] = ("Rename phantom avatar parameters", "é‡å‘½ååˆ†èº«æ¨¡å‹çš„å‚æ•°", "ãƒ•ã‚¡ãƒ³ãƒˆãƒ ã‚¢ãƒã‚¿ãƒ¼ã®ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã‚’ãƒªãƒãƒ¼ãƒ "),
+            ["Exceptions"] = ("Exceptions", "ä¾‹å¤–", "ä¾‹å¤–"),
+            ["ExceptionsMessage"] = ("The following Modular Avatar Parameters will NOT be renamed.", "ä»¥ä¸‹çš„Modular Avatar Parameterså°†ä¸ä¼šè¢«é‡å‘½åã€‚", "ä»¥ä¸‹ã®Modular Avatar Parametersã¯ãƒªãƒãƒ¼ãƒ ã•ã‚Œã¾ã›ã‚“ã€‚"),
+            ["ChooseAllParameters"] = ("Choose All Modular Avatar Parameters", "é€‰æ‹©å…¨éƒ¨Modular Avatar Parameters", "ã™ã¹ã¦ã®Modular Avatar Parametersã‚’é¸æŠ"),
+            ["DragMessage"] = ("Drag Modular Avatar Parameters here to add to exceptions", "å°†Modular Avatar Parametersæ‹–åˆ°æ­¤å¤„ä»¥æ·»åŠ åˆ°ä¾‹å¤–", "Modular Avatar Parametersã‚’ã“ã“ã«ãƒ‰ãƒ©ãƒƒã‚°ã—ã¦ä¾‹å¤–ã«è¿½åŠ "),
+            ["RemoveViewSystem"] = ("Remove phantom view window", "ç§»é™¤åˆ†èº«è§†çª—", "ãƒ•ã‚¡ãƒ³ãƒˆãƒ ã®è¦–ç•Œã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚’å‰Šé™¤"),
+            ["AdvancedSettings"] = ("Advanced Settings", "é«˜çº§è®¾ç½®", "è©³ç´°è¨­å®š"),
+            ["RemovePhantomMenu"] = ("Remove phantom avatar menu", "ç§»é™¤åˆ†èº«æ¨¡å‹èœå•", "ãƒ•ã‚¡ãƒ³ãƒˆãƒ ã‚¢ãƒã‚¿ãƒ¼ã®ãƒ¡ãƒ‹ãƒ¥ãƒ¼ã‚’å‰Šé™¤"),
+            ["RemovePhantomAvatarMA"] = ("Remove Modular Avatar components from phantom", "ä»åˆ†èº«ç§»é™¤Modular Avatarç»„ä»¶", "ãƒ•ã‚¡ãƒ³ãƒˆãƒ ã‹ã‚‰Modular Avatarã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã‚’å‰Šé™¤"),
+            ["RemoveOriginalAnimator"] = ("Remove Phantom Avatar's original FX", "ç§»é™¤åˆ†èº«æ¨¡å‹åŸå§‹FX", "ãƒ•ã‚¡ãƒ³ãƒˆãƒ ã‚¢ãƒã‚¿ãƒ¼ã®å…ƒã®FXã‚’å‰Šé™¤"),
+            ["ChangePBImmobileType"] = ("Change PhysBone ImmobileType (may break some physbones)", "æ›´æ”¹åˆ†èº«æ¨¡å‹åŠ¨éª¨ImmobileTypeï¼ˆå¯èƒ½ä¼šä½¿éƒ¨åˆ†åŠ¨éª¨å¼‚å¸¸ï¼‰", "PhysBoneã®ImmobileTypeã‚’å¤‰æ›´ï¼ˆã„ãã¤ã‹ã®PhysBoneãŒå£Šã‚Œã‚‹å¯èƒ½æ€§ã‚ã‚Šï¼‰"),
+            ["UseRotationConstraint"] = ("Use Rotation Constraint (useful when bone hierarchies differ)", "ä½¿ç”¨Rotation Constraintï¼ˆå½“åˆ†èº«æ¨¡å‹å’ŒåŸºç¡€æ¨¡å‹éª¨éª¼å±‚çº§ä¸åŒæ—¶å¾ˆæœ‰ç”¨ï¼‰", "Rotation Constraintã‚’ä½¿ç”¨ï¼ˆãƒœãƒ¼ãƒ³éšå±¤ãŒç•°ãªã‚‹å ´åˆã«æœ‰åŠ¹ï¼‰"),
+            ["RotationSolveInWorldSpace"] = ("Solve constraint in world space (may affect facing direction)", "åœ¨ä¸–ç•Œç©ºé—´ä¸­æ±‚è§£çº¦æŸï¼ˆå¯èƒ½å½±å“æœå‘ï¼‰", "ãƒ¯ãƒ¼ãƒ«ãƒ‰ç©ºé–“ã§åˆ¶ç´„ã‚’è§£æ±ºï¼ˆå‘ãã«å½±éŸ¿ã™ã‚‹å¯èƒ½æ€§ï¼‰"),
+            ["StartButton"] = ("Setup!", "å¼€å§‹é…ç½®ï¼", "ã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—é–‹å§‹ï¼"),
+            ["SuccessTitle"] = ("Success", "æˆåŠŸ", "æˆåŠŸ"),
+            ["SuccessMessage"] = ("Setup completed!", "é…ç½®å®Œæˆï¼", "ã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—å®Œäº†ï¼"),
+            ["ErrorTitle"] = ("Error!", "é”™è¯¯ï¼", "ã‚¨ãƒ©ãƒ¼ï¼"),
+            ["ErrorMessage"] = ("An error occurred. See Console.", "å‘ç”Ÿé”™è¯¯ã€‚è¯·æŸ¥çœ‹Consoleã€‚", "ã‚¨ãƒ©ãƒ¼ãŒç™ºç”Ÿã—ã¾ã—ãŸã€‚Consoleã‚’ç¢ºèªã—ã¦ãã ã•ã„ã€‚"),
+            ["OK"] = ("OK", "ç¡®å®š", "OK"),
+            ["BaseAvatarValidationError"] = ("Base Avatar must be set.", "å¿…é¡»è®¾ç½®åŸºç¡€æ¨¡å‹ã€‚", "ãƒ™ãƒ¼ã‚¹ã‚¢ãƒã‚¿ãƒ¼ã‚’è¨­å®šã—ã¦ãã ã•ã„ã€‚"),
+            ["PhantomAvatarValidationError"] = ("Phantom Avatar must be set.", "å¿…é¡»è®¾ç½®åˆ†èº«æ¨¡å‹ã€‚", "ãƒ•ã‚¡ãƒ³ãƒˆãƒ ã‚¢ãƒã‚¿ãƒ¼ã‚’è¨­å®šã—ã¦ãã ã•ã„ã€‚"),
+            ["BaseAvatarAnimatorNotFound"] = ("Base Avatar's animator component not found", "æœªæ‰¾åˆ°åŸºç¡€æ¨¡å‹çš„Animatorç»„ä»¶", "ãƒ™ãƒ¼ã‚¹ã‚¢ãƒã‚¿ãƒ¼ã®Animatorã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“"),
+            ["PhantomAvatarAnimatorNotFound"] = ("Phantom Avatar's animator component not found", "æœªæ‰¾åˆ°åˆ†èº«æ¨¡å‹çš„Animatorç»„ä»¶", "ãƒ•ã‚¡ãƒ³ãƒˆãƒ ã‚¢ãƒã‚¿ãƒ¼ã®Animatorã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“"),
+            ["BaseAvatarAnimatorError"] = ("Base Avatar must be humanoid.", "åŸºç¡€æ¨¡å‹å¿…é¡»ä¸ºHumanoidã€‚", "ãƒ™ãƒ¼ã‚¹ã‚¢ãƒã‚¿ãƒ¼ã¯Humanoidã§ã‚ã‚‹å¿…è¦ãŒã‚ã‚Šã¾ã™ã€‚"),
+            ["PhantomAvatarAnimatorError"] = ("Phantom Avatar must be humanoid.", "åˆ†èº«æ¨¡å‹å¿…é¡»ä¸ºHumanoidã€‚", "ãƒ•ã‚¡ãƒ³ãƒˆãƒ ã‚¢ãƒã‚¿ãƒ¼ã¯Humanoidã§ã‚ã‚‹å¿…è¦ãŒã‚ã‚Šã¾ã™ã€‚"),
+            ["AssetsNotFound"] = (" not found. Please reinstall PhantomSystem", " æœªæ‰¾åˆ°ã€‚è¯·é‡æ–°å®‰è£…PhantomSystem", " ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚PhantomSystemã‚’å†ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«ã—ã¦ãã ã•ã„"),
+            ["ReferenceControllerError"] = ("Reference animation controller is broken. Please reinstall PhantomSystem", "å‚è€ƒåŠ¨ç”»æ§åˆ¶å™¨æŸåã€‚è¯·é‡æ–°å®‰è£…PhantomSystem", "å‚ç…§ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ©ãƒ¼ãŒå£Šã‚Œã¦ã„ã¾ã™ã€‚PhantomSystemã‚’å†ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«ã—ã¦ãã ã•ã„"),
             ["UnsupportedComponentsWarning"] = (
                 "Unsupported components found on Phantom Avatar. This may cause some issues. If they do not modify animation layers you can usually ignore this warning; otherwise inspect and fix/remove the offending components.",
-                "ÔÚ·ÖÉíÄ£ĞÍÉÏ¼ì²âµ½²»ÊÜÖ§³ÖµÄ×é¼ş£¬¿ÉÄÜ»áµ¼ÖÂ¹¦ÄÜÒì³£¡£Í¨³£Èç¹ûÕâĞ©×é¼ş²»ĞŞ¸ÄÄ£ĞÍµÄ¶¯»­²ã£¬¿ÉÒÔºöÂÔ´Ë¾¯¸æ£»Èô»³ÒÉ»á²úÉúÓ°Ïì£¬Çë¼ì²é²¢ÒÆ³ı»òÌæ»»Ïà¹Ø×é¼ş¡£",
-                "¥Õ¥¡¥ó¥È¥à¥¢¥Ğ¥¿©`ÉÏ¤Ë¥µ¥İ©`¥ÈŒÏóÍâ¤Î¥³¥ó¥İ©`¥Í¥ó¥È¤¬ÒŠ¤Ä¤«¤ê¤Ş¤·¤¿¡£¤³¤ì¤Ë¤è¤ê²»¾ßºÏ¤¬°kÉú¤¹¤ë¿ÉÄÜĞÔ¤¬¤¢¤ê¤Ş¤¹¡£Í¨³£¡¢¤³¤ì¤é¤Î¥³¥ó¥İ©`¥Í¥ó¥È¤¬¥¢¥Ğ¥¿©`¤Î¥¢¥Ë¥á©`¥·¥ç¥óŒÓ¤ò‰ä¸ü¤·¤Ê¤¤ˆöºÏ¤ÏŸoÒ•¤Ç¤­¤Ş¤¹¤¬¡¢Ó°í‘¤¬ÒÉ¤ï¤ì¤ëˆöºÏ¤Ï´_ÕJ¤·¤ÆÏ÷³ı¤Ş¤¿¤ÏÖÃ“Q¤·¤Æ¤¯¤À¤µ¤¤¡£"),
-            ["ShowUnsupportedComponents"] = ("Unsupported Components", "²»Ö§³ÖµÄ×é¼ş", "¥µ¥İ©`¥ÈÍâ¥³¥ó¥İ©`¥Í¥ó¥È")
+                "åˆ†èº«æ¨¡å‹ä¸Šå‘ç°ä¸å—æ”¯æŒçš„ç»„ä»¶ï¼Œå¯èƒ½å¯¼è‡´ä¸€äº›é—®é¢˜ã€‚å¦‚æœå®ƒä»¬ä¸ä¿®æ”¹åŠ¨ç”»å±‚ï¼Œé€šå¸¸å¯ä»¥å¿½ç•¥æ­¤è­¦å‘Šï¼›å¦åˆ™è¯·æ£€æŸ¥å¹¶ä¿®å¤/ç§»é™¤ç›¸å…³ç»„ä»¶ã€‚",
+                "ãƒ•ã‚¡ãƒ³ãƒˆãƒ ã‚¢ãƒã‚¿ãƒ¼ã«æœªå¯¾å¿œã®ã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆãŒè¦‹ã¤ã‹ã‚Šã¾ã—ãŸã€‚å•é¡ŒãŒç™ºç”Ÿã™ã‚‹å¯èƒ½æ€§ãŒã‚ã‚Šã¾ã™ã€‚ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’å¤‰æ›´ã—ãªã„å ´åˆã¯é€šå¸¸ã“ã®è­¦å‘Šã‚’ç„¡è¦–ã§ãã¾ã™ãŒã€å½±éŸ¿ãŒã‚ã‚‹å ´åˆã¯è©²å½“ã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã‚’ç¢ºèªã—ã¦ä¿®æ­£/å‰Šé™¤ã—ã¦ãã ã•ã„ã€‚"),
+            ["ShowUnsupportedComponents"] = ("Unsupported Components", "ä¸å—æ”¯æŒçš„ç»„ä»¶", "æœªå¯¾å¿œã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆ")
         };
 
         private string T(string key)
@@ -297,7 +298,7 @@ namespace MPCCT
             EditorGUILayout.LabelField("PhantomSystem v1.0.0 preview Made By MPCCT");
 
             // Language selection
-            string[] localeOptions = new[] { "English", "ÖĞÎÄ", "ÈÕ±¾ÕZ" };
+            string[] localeOptions = new[] { "English", "ä¸­æ–‡", "æ—¥æœ¬èª" };
             int newLocale = EditorGUILayout.Popup(T("LanguageLabel"), (int)currentLocale, localeOptions);
             if (newLocale != (int)currentLocale)
             {
@@ -1026,12 +1027,18 @@ namespace MPCCT
                     }
                     else
                     {
-                        installer.installTargetMenu = CopyExpressionMenuRecursively(installer.installTargetMenu, GeneratedMenuPath);
+                        installer.installTargetMenu = CopyExpressionMenuRecursively(
+                            installer.installTargetMenu,
+                            GeneratedMenuPath,
+                            $"ModularAvatarMenuInstaller (installTargetMenu) at {GetComponentPath(installer)}");
                     }
 
                     if (installer.menuToAppend != null)
                     {
-                        installer.menuToAppend = CopyExpressionMenuRecursively(installer.menuToAppend, GeneratedMenuPath);
+                        installer.menuToAppend = CopyExpressionMenuRecursively(
+                            installer.menuToAppend,
+                            GeneratedMenuPath,
+                            $"ModularAvatarMenuInstaller (menuToAppend) at {GetComponentPath(installer)}");
                     }
 
                     EditorUtility.SetDirty(installer);
@@ -1043,7 +1050,10 @@ namespace MPCCT
                 {
                     if (item.Control.type == VRCExpressionsMenu.Control.ControlType.SubMenu && item.MenuSource == SubmenuSource.MenuAsset)
                     {
-                        item.Control.subMenu = CopyExpressionMenuRecursively(item.Control.subMenu, GeneratedMenuPath);
+                        item.Control.subMenu = CopyExpressionMenuRecursively(
+                            item.Control.subMenu,
+                            GeneratedMenuPath,
+                            $"ModularAvatarMenuItem (subMenu) at {GetComponentPath(item)}");
                     }
                     if (!string.IsNullOrEmpty(item.Control.parameter.name))
                     {
@@ -1209,7 +1219,10 @@ namespace MPCCT
                 var PhantomAvatarMAMenuInstaller = PhantomAvatarMA.AddComponent<ModularAvatarMenuInstaller>();
                 if (PhantomAvatar.expressionsMenu != null)
                 {
-                    PhantomAvatarMAMenuInstaller.menuToAppend = CopyExpressionMenuRecursively(PhantomAvatar.expressionsMenu, GeneratedMenuPath);
+                    PhantomAvatarMAMenuInstaller.menuToAppend = CopyExpressionMenuRecursively(
+                        PhantomAvatar.expressionsMenu,
+                        GeneratedMenuPath,
+                        $"PhantomOriginalFX_MA MenuInstaller (menuToAppend) at {GetComponentPath(PhantomAvatarMAMenuInstaller)}");
                     PhantomAvatarMAMenuInstaller.installTargetMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(PhantomMenuPath);
                 }
             }
@@ -1305,6 +1318,55 @@ namespace MPCCT
             return GetRelativePath(target.parent, root) + (target.parent == root ? "" : "/") + target.name;
         }
 
+        private string GetComponentPath(Component component)
+        {
+            if (component == null)
+            {
+                return "<null>";
+            }
+
+            var root = BaseAvatar != null ? BaseAvatar.transform : (PhantomAvatar != null ? PhantomAvatar.transform : null);
+            if (component.transform == null)
+            {
+                return component.name;
+            }
+
+            if (root != null && component.transform.IsChildOf(root))
+            {
+                var rel = GetRelativePath(component.transform, root);
+                return string.IsNullOrEmpty(rel) ? root.name : $"{root.name}/{rel}";
+            }
+
+            return component.transform.name;
+        }
+
+        private void ShowMenuCopyError(string context, VRCExpressionsMenu sourceMenu, string path, string reason, Exception ex = null)
+        {
+            string menuName = sourceMenu != null ? sourceMenu.name : "<null>";
+            string assetPath = sourceMenu != null ? AssetDatabase.GetAssetPath(sourceMenu) : "<null>";
+            string message =
+                "Copy Expressions Menu failed.\n" +
+                $"Context: {context}\n" +
+                $"Menu: {menuName}\n" +
+                $"Asset: {assetPath}\n" +
+                $"Target: {path}\n" +
+                $"Reason: {reason}";
+
+            if (ex != null)
+            {
+                message += $"\nException: {ex.GetType().Name}: {ex.Message}";
+            }
+
+            string key = $"{context}|{assetPath}|{reason}";
+            if (!MenuCopyErrorKeys.Contains(key))
+            {
+                MenuCopyErrorKeys.Add(key);
+                EditorUtility.DisplayDialog("Phantom System - Menu Copy Error", message, "OK");
+            }
+
+            Debug.LogError($"[Phantom System] {message}");
+        }
+
         // Import Parameters from VRCExpressionParameters to MAParameters
         private List<ParameterConfig> GetParameterFromVRCParameter(VRCExpressionParameters parameters, bool IsRenamed)
         {
@@ -1353,45 +1415,106 @@ namespace MPCCT
             return result;
         }
 
-        private VRCExpressionsMenu CopyExpressionMenuRecursively(VRCExpressionsMenu sourceMenu, string path)
+        private VRCExpressionsMenu CopyExpressionMenuRecursively(VRCExpressionsMenu sourceMenu, string path, string context)
         {
-            // Create unique menu name
-            // use GUID
-            var guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(sourceMenu));
-            string MenuRename = $"{sourceMenu.name}_{guid[..8]}";
-            // skip already copied menu
-            if (SavedMenuGUID.Contains(guid))
+            string safeContext = string.IsNullOrEmpty(context) ? "<unknown>" : context;
+            try
             {
-                return AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>($"{path}/{MenuRename}.asset");
-            }
-            SavedMenuGUID.Add(guid);
+                if (sourceMenu == null)
+                {
+                    ShowMenuCopyError(safeContext, sourceMenu, path, "Source menu is null.");
+                    return null;
+                }
 
-            // Check if it's a subAsset
-            if (AssetDatabase.IsSubAsset(sourceMenu))
+                string sourcePath = AssetDatabase.GetAssetPath(sourceMenu);
+                if (string.IsNullOrEmpty(sourcePath))
+                {
+                    ShowMenuCopyError(safeContext, sourceMenu, path, "Source menu has no asset path (likely not an asset).");
+                    return sourceMenu;
+                }
+
+                // Create unique menu name
+                // use GUID
+                var guid = AssetDatabase.AssetPathToGUID(sourcePath);
+                if (string.IsNullOrEmpty(guid))
+                {
+                    ShowMenuCopyError(safeContext, sourceMenu, path, "Failed to resolve GUID for source menu.");
+                    return sourceMenu;
+                }
+
+                string MenuRename = $"{sourceMenu.name}_{guid[..8]}";
+                // skip already copied menu
+                if (SavedMenuGUID.Contains(guid))
+                {
+                    return AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>($"{path}/{MenuRename}.asset");
+                }
+                SavedMenuGUID.Add(guid);
+
+                // Check if it's a subAsset
+                if (AssetDatabase.IsSubAsset(sourceMenu))
+                {
+                    Debug.LogWarning($"[Phantom System] The menu '{sourceMenu.name}' is a sub-asset. PhantomSystem will not copy it.");
+                    return sourceMenu;
+                }
+
+                // copy menu
+                if (!AssetDatabase.CopyAsset(sourcePath, $"{path}/{MenuRename}.asset"))
+                {
+                    ShowMenuCopyError(safeContext, sourceMenu, path, "AssetDatabase.CopyAsset failed.");
+                    return sourceMenu;
+                }
+
+                var copiedMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>($"{path}/{MenuRename}.asset");
+                if (copiedMenu == null)
+                {
+                    ShowMenuCopyError(safeContext, sourceMenu, path, "Copied menu asset could not be loaded.");
+                    return sourceMenu;
+                }
+
+                if (sourceMenu.controls == null)
+                {
+                    ShowMenuCopyError(safeContext, sourceMenu, path, "Source menu controls is null.");
+                    return copiedMenu;
+                }
+
+                if (copiedMenu.controls == null)
+                {
+                    ShowMenuCopyError(safeContext, sourceMenu, path, "Copied menu controls is null.");
+                    return copiedMenu;
+                }
+
+                // trverse sub-menus
+                var controls = copiedMenu.controls;
+                int count = Math.Min(sourceMenu.controls.Count, controls.Count);
+                if (sourceMenu.controls.Count != controls.Count)
+                {
+                    ShowMenuCopyError(
+                        safeContext,
+                        sourceMenu,
+                        path,
+                        $"Controls count mismatch. Source: {sourceMenu.controls.Count}, Copied: {controls.Count}.");
+                }
+
+                for (int i = 0; i < count; i++)
+                {
+                    var c = controls[i];
+                    if (c != null && c.type == VRCExpressionsMenu.Control.ControlType.SubMenu && c.subMenu != null)
+                    {
+                        var newSubMenu = CopyExpressionMenuRecursively(c.subMenu, path, $"{safeContext} -> SubMenu[{i}] '{c.name}'");
+                        c.subMenu = newSubMenu;
+                        controls[i] = c; // write back
+                    }
+                }
+
+                EditorUtility.SetDirty(copiedMenu);
+                AssetDatabase.SaveAssetIfDirty(copiedMenu);
+                return copiedMenu;
+            }
+            catch (Exception ex)
             {
-                Debug.LogWarning($"[Phantom System] The menu '{sourceMenu.name}' is a sub-asset. PhanotmSystem will not copy it.");
+                ShowMenuCopyError(safeContext, sourceMenu, path, "Exception thrown while copying menu.", ex);
                 return sourceMenu;
             }
-
-            // copy menu
-            AssetDatabase.CopyAsset(AssetDatabase.GetAssetPath(sourceMenu), $"{path}/{MenuRename}.asset");
-            var copiedMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>($"{path}/{MenuRename}.asset");
-
-            // trverse sub-menus
-            var controls = copiedMenu.controls;
-            for (int i = 0; i < sourceMenu.controls.Count; i++)
-            {
-                var c = controls[i];
-                if (c != null && c.type == VRCExpressionsMenu.Control.ControlType.SubMenu && c.subMenu != null)
-                {
-                    var newSubMenu = CopyExpressionMenuRecursively(c.subMenu, path);
-                    c.subMenu = newSubMenu;
-                    controls[i] = c; // write back
-                }
-            }
-            EditorUtility.SetDirty(copiedMenu);
-            AssetDatabase.SaveAssetIfDirty(copiedMenu);
-            return copiedMenu;
         }
 
         private string RebasePhantomPath(SetupContext ctx, string path)
