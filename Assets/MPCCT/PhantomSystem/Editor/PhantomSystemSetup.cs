@@ -46,8 +46,6 @@ namespace MPCCT
         private string GeneratedAnimationPath;
         private string GeneratedMenuPath;
 
-        private enum Locale { English = 0, Chinese = 1, Japanese = 2 }
-        private Locale currentLocale = Locale.English;
         #endregion
 
         #region --- Paths & Texts ---
@@ -98,57 +96,9 @@ namespace MPCCT
         private static string LocalViewSysMenuPath_zh => ResolveAssetPath("LocalViewSysMenu_zh");
         private static string LocalViewSysMenuPath_jp => ResolveAssetPath("LocalViewSysMenu_jp");
 
-        private static readonly Dictionary<string, (string en, string zh, string jp)> s_texts = new Dictionary<string, (string, string, string)>
-        {
-            ["LanguageLabel"] = ("Language", "语言", "言語"),
-            ["BaseAvatar"] = ("Base Avatar", "基础模型", "ベースアバター"),
-            ["PhantomAvatar"] = ("Phantom Avatar", "分身模型", "ファントムアバター"),
-            ["RenameParameters"] = ("Rename phantom avatar parameters", "重命名分身模型的参数", "ファントムアバターのパラメータをリネーム"),
-            ["Exceptions"] = ("Exceptions", "例外", "例外"),
-            ["ExceptionsMessage"] = ("The following Modular Avatar Parameters will NOT be renamed.", "以下的Modular Avatar Parameters将不会被重命名。", "以下のModular Avatar Parametersはリネームされません。"),
-            ["ChooseAllParameters"] = ("Choose All Modular Avatar Parameters", "选择全部Modular Avatar Parameters", "すべてのModular Avatar Parametersを選択"),
-            ["DragMessage"] = ("Drag Modular Avatar Parameters here to add to exceptions", "将Modular Avatar Parameters拖到此处以添加到例外", "Modular Avatar Parametersをここにドラッグして例外に追加"),
-            ["RemoveViewSystem"] = ("Remove phantom view window", "移除分身视窗", "ファントムの視界ウィンドウを削除"),
-            ["AdvancedSettings"] = ("Advanced Settings", "高级设置", "詳細設定"),
-            ["RemovePhantomMenu"] = ("Remove phantom avatar menu", "移除分身模型菜单", "ファントムアバターのメニューを削除"),
-            ["RemovePhantomAvatarMA"] = ("Remove Modular Avatar components from phantom", "从分身移除Modular Avatar组件", "ファントムからModular Avatarコンポーネントを削除"),
-            ["RemoveOriginalAnimator"] = ("Remove Phantom Avatar's original FX", "移除分身模型原始FX", "ファントムアバターの元のFXを削除"),
-            ["ChangePBImmobileType"] = ("Change PhysBone ImmobileType (may break some physbones)", "更改分身模型动骨ImmobileType（可能会使部分动骨异常）", "PhysBoneのImmobileTypeを変更（いくつかのPhysBoneが壊れる可能性あり）"),
-            ["UseRotationConstraint"] = ("Use Rotation Constraint (useful when bone hierarchies differ)", "使用Rotation Constraint（当分身模型和基础模型骨骼层级不同时很有用）", "Rotation Constraintを使用（ボーン階層が異なる場合に有効）"),
-            ["RotationSolveInWorldSpace"] = ("Solve constraint in world space (may affect facing direction)", "在世界空间中求解约束（可能影响朝向）", "ワールド空間で制約を解決（向きに影響する可能性）"),
-            ["StartButton"] = ("Setup!", "开始配置！", "セットアップ開始！"),
-            ["SuccessTitle"] = ("Success", "成功", "成功"),
-            ["SuccessMessage"] = ("Setup completed!", "配置完成！", "セットアップ完了！"),
-            ["ErrorTitle"] = ("Error!", "错误！", "エラー！"),
-            ["ErrorMessage"] = ("An error occurred. See Console.", "发生错误。请查看Console。", "エラーが発生しました。Consoleを確認してください。"),
-            ["OK"] = ("OK", "确定", "OK"),
-            ["BaseAvatarValidationError"] = ("Base Avatar must be set.", "必须设置基础模型。", "ベースアバターを設定してください。"),
-            ["PhantomAvatarValidationError"] = ("Phantom Avatar must be set.", "必须设置分身模型。", "ファントムアバターを設定してください。"),
-            ["BaseAvatarAnimatorNotFound"] = ("Base Avatar's animator component not found", "未找到基础模型的Animator组件", "ベースアバターのAnimatorコンポーネントが見つかりません"),
-            ["PhantomAvatarAnimatorNotFound"] = ("Phantom Avatar's animator component not found", "未找到分身模型的Animator组件", "ファントムアバターのAnimatorコンポーネントが見つかりません"),
-            ["BaseAvatarAnimatorError"] = ("Base Avatar must be humanoid.", "基础模型必须为Humanoid。", "ベースアバターはHumanoidである必要があります。"),
-            ["PhantomAvatarAnimatorError"] = ("Phantom Avatar must be humanoid.", "分身模型必须为Humanoid。", "ファントムアバターはHumanoidである必要があります。"),
-            ["AssetsNotFound"] = (" not found. Please reinstall PhantomSystem", " 未找到。请重新安装PhantomSystem", " が見つかりません。PhantomSystemを再インストールしてください"),
-            ["ReferenceControllerError"] = ("Reference animation controller is broken. Please reinstall PhantomSystem", "参考动画控制器损坏。请重新安装PhantomSystem", "参照アニメーションコントローラーが壊れています。PhantomSystemを再インストールしてください"),
-            ["UnsupportedComponentsWarning"] = (
-                "Unsupported components found on Phantom Avatar. This may cause some issues. If they do not modify animation layers you can usually ignore this warning; otherwise inspect and fix/remove the offending components.",
-                "分身模型上发现不受支持的组件，可能导致一些问题。如果它们不修改动画层，通常可以忽略此警告；否则请检查并修复/移除相关组件。",
-                "ファントムアバターに未対応のコンポーネントが見つかりました。問題が発生する可能性があります。アニメーションレイヤーを変更しない場合は通常この警告を無視できますが、影響がある場合は該当コンポーネントを確認して修正/削除してください。"),
-            ["ShowUnsupportedComponents"] = ("Unsupported Components", "不受支持的组件", "未対応コンポーネント")
-        };
-
         private string T(string key)
         {
-            if (!s_texts.TryGetValue(key, out var tuple)) return key;
-            switch (currentLocale)
-            {
-                case Locale.Chinese:
-                    return tuple.zh;
-                case Locale.Japanese:
-                    return tuple.jp;
-                default:
-                    return tuple.en;
-            }
+            return PhantomSystemLocalizationData.Text(key);
         }
 
         private static readonly Type[] ComponentsWhiteList = new Type[]
@@ -303,7 +253,7 @@ namespace MPCCT
         private void OnEnable()
         {
             // Load saved locale
-            currentLocale = (Locale)EditorPrefs.GetInt("MPCCT_PhantomSystem_Locale", (int)Locale.English);
+            PhantomSystemLocalizationData.currentLocale = (PhantomSystemLocalizationData.Locale)EditorPrefs.GetInt("MPCCT_PhantomSystem_Locale", (int)PhantomSystemLocalizationData.Locale.English);
         }
 
         [MenuItem("MPCCT/PhantomSystemSetup")]
@@ -322,10 +272,10 @@ namespace MPCCT
 
             // Language selection
             string[] localeOptions = new[] { "English", "中文", "日本語" };
-            int newLocale = EditorGUILayout.Popup(T("LanguageLabel"), (int)currentLocale, localeOptions);
-            if (newLocale != (int)currentLocale)
+            int newLocale = EditorGUILayout.Popup(T("LanguageLabel"), (int)PhantomSystemLocalizationData.currentLocale, localeOptions);
+            if (newLocale != (int)PhantomSystemLocalizationData.currentLocale)
             {
-                currentLocale = (Locale)newLocale;
+                PhantomSystemLocalizationData.currentLocale = (PhantomSystemLocalizationData.Locale)newLocale;
                 EditorPrefs.SetInt("MPCCT_PhantomSystem_Locale", newLocale);
             }
 
@@ -1139,19 +1089,19 @@ namespace MPCCT
             MAPrefabAnimator.layerPriority = ctx.PhantomAvatarAnimatorMaxPriority + ctx.BaseAvatarAnimatorMaxPriority + 3;
 
             // Localize Menu
-            switch (currentLocale)
+            switch (PhantomSystemLocalizationData.currentLocale)
             {
-                case Locale.Chinese:
+                case PhantomSystemLocalizationData.Locale.Chinese:
                     {
                         var MainMenu = IsRemovePhantomMenu ? AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalMainMenu_NoPhantomMenuPath_zh) : AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalMainMenuPath_zh);
                         MAPrefabInstance.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = MainMenu;
                         break;
                     }
-                case Locale.English:
+                case PhantomSystemLocalizationData.Locale.English:
                     {
                         break;
                     }
-                case Locale.Japanese:
+                case PhantomSystemLocalizationData.Locale.Japanese:
                     {
                         var MainMenu = IsRemovePhantomMenu ? AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalMainMenu_NoPhantomMenuPath_jp) : AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalMainMenuPath_jp);
                         MAPrefabInstance.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = MainMenu;
@@ -1184,9 +1134,9 @@ namespace MPCCT
             ViewSystemAnimator.layerPriority = ctx.PhantomAvatarAnimatorMaxPriority + ctx.BaseAvatarAnimatorMaxPriority + 4;
 
             // Localize Menu
-            switch (currentLocale)
+            switch (PhantomSystemLocalizationData.currentLocale)
             {
-                case Locale.Chinese:
+                case PhantomSystemLocalizationData.Locale.Chinese:
                     {
                         VRCExpressionsMenu ViewMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalViewSysMenuPath_zh);
                         ViewSystem.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = ViewMenu;
@@ -1195,11 +1145,11 @@ namespace MPCCT
                             AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalSubMenuPath_zh);
                         break;
                     }
-                case Locale.English:
+                case PhantomSystemLocalizationData.Locale.English:
                     {
                         break;
                     }
-                case Locale.Japanese:
+                case PhantomSystemLocalizationData.Locale.Japanese:
                     {
                         VRCExpressionsMenu ViewMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalViewSysMenuPath_jp);
                         ViewSystem.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = ViewMenu;
