@@ -16,34 +16,44 @@ namespace MPCCT
         }
 
         [SerializeField]
-        private List<Entry> entries = new List<Entry>();
+        private List<Entry> _entries = new List<Entry>();
 
-        private const string DeafaultAssetGUID = "2b0356b3670b7e74eb7e4fef59729cce";
+        private static PhantomSystemAssetData Instance;
 
-        public static PhantomSystemAssetData Load()
+        private static List<Entry> entries
         {
-            var db = AssetDatabase.LoadAssetAtPath<PhantomSystemAssetData>(AssetDatabase.GUIDToAssetPath(DeafaultAssetGUID));
-            return db;
+            get
+            {
+                if (Instance == null)
+                {
+                    var guids = AssetDatabase.FindAssets("t:PhantomSystemAssetData");
+                    if (guids.Length == 0)
+                    {
+                        Instance = CreateInstance<PhantomSystemAssetData>();
+                        Debug.LogError("[PhantomSystem] PhantomSystemAssetData asset not found. Please reinstall PhantomSystem");
+                    }
+                    else
+                    {
+                        Instance = AssetDatabase.LoadAssetAtPath<PhantomSystemAssetData>(AssetDatabase.GUIDToAssetPath(guids[0]));
+                        if (guids.Length > 1) Debug.LogWarning("[PhantomSystem] Multiple PhantomSystemAssetData assets found. Delete PhantomSystem folder and reinstall it if anything is wrong.");
+                    }
+                        
+                }
+                return Instance._entries;
+            }
         }
 
-        internal string GetGuid(string key)
+        internal static string GetGuid(string key)
         {
             var e = entries.FirstOrDefault(x => x.key == key);
             return e?.guid;
-        }
-
-        internal static List<string> GetAllKeys()
-        {
-            var db = Load();
-            return db.entries.Select(x => x.key).ToList();
         }
 
         internal static string ResolvePath(string key)
         {
             if (string.IsNullOrEmpty(key)) return key;
 
-            var db = Load();
-            var guid = db.GetGuid(key);
+            var guid = GetGuid(key);
             if (!string.IsNullOrEmpty(guid))
             {
                 var p = AssetDatabase.GUIDToAssetPath(guid);

@@ -51,6 +51,29 @@ namespace MPCCT
         #endregion
 
         #region --- Paths & Texts ---
+
+        private static readonly List<string> PhantomSystemAssetDataKeys = new List<string>
+        {
+            "MainFolder",
+            "MAPrefab",
+            "MAPrefab_NoPhantomMenu",
+            "ReferenceAnimation",
+            "PhantomMenu",
+            "ViewSystemPrefab",
+            "ViewSystemPrefab_NoPhantomMenu",
+            "GrabPrefab",
+            "LocalMainMenu_zh",
+            "LocalMainMenu_jp",
+            "LocalSubMenu_zh",
+            "LocalSubMenu_jp",
+            "LocalMainMenu_NoPhantomMenu_zh",
+            "LocalMainMenu_NoPhantomMenu_jp",
+            "LocalSubMenu_NoPhantomMenu_zh",
+            "LocalSubMenu_NoPhantomMenu_jp",
+            "LocalViewSysMenu_zh",
+            "LocalViewSysMenu_jp"
+        };
+
         private static string MainFolder => ResolveAssetPath("MainFolder");
         private static string GeneratedMainFolder => $"{MainFolder}/~Generated";
 
@@ -470,7 +493,6 @@ namespace MPCCT
             }
 
             // Asset existence
-            var PhantomSystemAssetDataKeys = PhantomSystemAssetData.GetAllKeys();
             foreach (var key in PhantomSystemAssetDataKeys)
             {
                 var path = PhantomSystemAssetData.ResolvePath(key);
@@ -482,7 +504,7 @@ namespace MPCCT
 
             // Reference animation controller validity
             var refController = AssetDatabase.LoadAssetAtPath<AnimatorController>(ReferenceAnimationPath);
-            if (refController.layers == null || refController.layers.Length < 3)
+            if (refController == null || refController.layers == null || refController.layers.Length < 3)
             {
                 errors.Add(T("ReferenceControllerError"));
             }

@@ -10,7 +10,7 @@ namespace MPCCT
 
         private void OnEnable()
         {
-            entriesProp = serializedObject.FindProperty("entries");
+            entriesProp = serializedObject.FindProperty("_entries");
         }
 
         public override void OnInspectorGUI()

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8acff3b8d8da8e948a6e72a666142472, type: 3}
   m_Name: PhantomSystem_AssetData
   m_EditorClassIdentifier: 
-  entries:
+  _entries:
   - key: MainFolder
     guid: 1890e699f8d9e584a908af8b16ea409c
   - key: MAPrefab
