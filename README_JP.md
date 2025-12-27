@@ -2,6 +2,8 @@
 > この日本語版のドキュメントはAIによって翻訳されたものです。作者は日本語を解さないため、不自然な表現が含まれている可能性があります。
 
 # VRC-PhantomSystem
+[中文](https://github.com/MPCCT/VRC-PhantomSystem/blob/main/README.md)|[English](https://github.com/MPCCT/VRC-PhantomSystem/blob/main/README_EN.md)|**日本語**
+
 PhantomSystemは、VRChatのアバターに、本体の動きに追従する分身（ファントム）モデルを簡単に追加するためのツールです。
 
 ## ✨ 特徴

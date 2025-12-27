@@ -1,4 +1,6 @@
 # VRC-PhantomSystem
+**中文**|[English](https://github.com/MPCCT/VRC-PhantomSystem/blob/main/README_EN.md)|[日本語](https://github.com/MPCCT/VRC-PhantomSystem/blob/main/README_JP.md)
+
 PhantomSystem是一款用于在VRChat模型中简单地添加一个跟随本体动作的分身模型的工具。
 
 ## ✨功能特色
