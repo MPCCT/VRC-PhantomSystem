@@ -72,8 +72,7 @@ MonoBehaviour:
   version: 1
   integrationType: 0
   rootTransform: {fileID: 0}
-  ignoreTransforms:
-  - {fileID: 0}
+  ignoreTransforms: []
   ignoreOtherPhysBones: 1
   endpointPosition: {x: 0, y: 0, z: 0}
   multiChildType: 0
@@ -196,7 +195,7 @@ MonoBehaviour:
     allowOthers: 1
     contentTypes: -1
   snapToHand: 0
-  grabMovement: 0.5
+  grabMovement: 1
   maxStretch: 10
   maxStretchCurve:
     serializedVersion: 2
