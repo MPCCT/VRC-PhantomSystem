@@ -29,7 +29,7 @@ PhantomSystemは、VRChatのアバターに、本体の動きに追従する分�
 - ファントムと本体の特定のMAコンポーネントのパラメータを同期させたくない場合は、**ファントムアバターのパラメータをリネーム** にチェックを入れてください。
 - 設定後のアバター全体のパラメータ数や `PhysBones` 数などの制限を超えないよう注意してください（アップロードできなくなる可能性があります）。
 - ファントムアバターには、ボーンアニメーション関連のコンポーネントや、アニメーションコントローラー内で `VRC Tracking Control` を使用しているコンポーネントを追加しないでください。
-    - 例えば、[GoGoLoco](https://booth.pm/items/3290806) や [AvatarPoseLibrary](https://github.com/HhotateA/AvatarPoseLibrary) のような動作制御プラグインはサポートされていません。
+    - 例えば、[GoGoLoco](https://booth.pm/ja/items/3290806) や [AvatarPoseLibrary](https://github.com/HhotateA/AvatarPoseLibrary) のような動作制御プラグインはサポートされていません。
 - ファントムアバターを有効にすると、実質的に2体分のアバター負荷がかかります。非表示時でもFXレイヤーが通常より複雑になるため、使用にはご注意ください。
 
 ## ❓ よくある質問

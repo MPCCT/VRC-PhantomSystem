@@ -26,7 +26,7 @@ PhantomSystem是一款用于在VRChat模型中简单地添加一个跟随本体�
 - 若不想分身模型和原本模型在某些MA组件上参数同步，可以勾选 **重命名分身模型的参数** 选项。
 - 注意配置好后的模型整体参数数量、动骨（`PhysBones`）数量等限制以防无法上传模型。
 - 不建议在分身模型中添加任何骨骼动画相关的组件，以及任何在动画控制器中使用了 `VRC Tracking Control`的组件。
-    - 例如，分身模型上并不支持 [GoGoLoco](https://booth.pm/items/3290806) 和 [AvatarPoseLibrary](https://github.com/HhotateA/AvatarPoseLibrary) 这类会控制模型动作的插件。
+    - 例如，分身模型上并不支持 [GoGoLoco](https://booth.pm/zh-cn/items/3290806) 和 [AvatarPoseLibrary](https://github.com/HhotateA/AvatarPoseLibrary) 这类会控制模型动作的插件。
 - 开启分身模型基本上会有着相当于两套模型的负载，关闭分身模型后FX动画层也相较常规模型更多。请注意使用。
 
 ## ❓常见问题

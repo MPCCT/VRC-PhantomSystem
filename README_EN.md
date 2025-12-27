@@ -26,7 +26,7 @@ Before importing this tool, please ensure the following are installed correctly:
 - If you do not want the phantom and the base model to sync parameters on certain MA components, check the **Rename phantom avatar parameters** option.
 - Pay attention to the total parameter count and PhysBone limits after configuration to ensure the avatar can be uploaded.
 - It is NOT recommended to add any bone animation components or any components that use `VRC Tracking Control` in the animator controller to the phantom model.
-    - For example, plugins like [GoGoLoco](https://booth.pm/items/3290806) and [AvatarPoseLibrary](https://github.com/HhotateA/AvatarPoseLibrary) that control avatar movement are not supported on the phantom model.
+    - For example, plugins like [GoGoLoco](https://booth.pm/en/items/3290806) and [AvatarPoseLibrary](https://github.com/HhotateA/AvatarPoseLibrary) that control avatar movement are not supported on the phantom model.
 - Enabling the phantom model essentially doubles the performance load. Even when the phantom is hidden, the FX layers will still be more than a regular avatar. Please use it mindfully.
 
 ## ❓ FAQ
