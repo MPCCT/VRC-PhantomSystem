@@ -1,7 +1,7 @@
 # VRC-PhantomSystem
 [中文](https://github.com/MPCCT/VRC-PhantomSystem/blob/main/README.md)|**English**|[日本語](https://github.com/MPCCT/VRC-PhantomSystem/blob/main/README_JP.md)
 
-VRC-PhantomSystem is a tool designed to easily add a "Phantom Avatar" to your VRChat avatar that follows the movements of the base model.
+PhantomSystem is a tool designed to easily add a "Phantom Avatar" to your VRChat avatar that follows the movements of the base model.
 
 ## ✨ Features
 - **One-Click Setup**: No complex setting steps. Once your models are ready, configure everything with a single click.

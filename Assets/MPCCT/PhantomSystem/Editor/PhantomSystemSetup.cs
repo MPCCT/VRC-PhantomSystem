@@ -742,7 +742,8 @@ namespace MPCCT
                     ctx.PhantomBonePaths.Add(bone, GetRelativePath(PhantomBone, BaseAvatar.transform));
                     if (BaseBone != null)
                     {
-                        if (!IsUseRotationConstraint)
+                        // Add parent constranit to Hips bone even if using Rotation Constraint
+                        if (!IsUseRotationConstraint || bone == HumanBodyBones.Hips)
                         {
                             // Add Parent Constraint to the Phantom Avatar bone
                             var constraint = PhantomBone.gameObject.AddComponent<VRCParentConstraint>();
@@ -1257,6 +1258,9 @@ namespace MPCCT
             foreach (var PB in PhantomPhysBones)
             {
                 PB.immobileType = VRCPhysBoneBase.ImmobileType.AllMotion;
+                EditorUtility.SetDirty(PB);
+                if (PrefabUtility.IsPartOfPrefabInstance(PB))
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(PB);
             }
         }
 
