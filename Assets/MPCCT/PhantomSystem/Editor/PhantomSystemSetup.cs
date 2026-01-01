@@ -268,7 +268,7 @@ namespace MPCCT
         private void OnGUI()
         {
             // Title
-            EditorGUILayout.LabelField("PhantomSystem v1.0.0 preview Made By MPCCT");
+            EditorGUILayout.LabelField("PhantomSystem v1.0.0 Made By MPCCT");
 
             // Language selection
             string[] localeOptions = new[] { "English", "中文", "日本語" };
