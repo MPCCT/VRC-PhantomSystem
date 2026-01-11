@@ -23,6 +23,8 @@ MonoBehaviour:
     guid: c13261f4291a0e643aec3a6448a9f55e
   - key: PhantomMenu
     guid: f7baeed80f640f847a0650eb267cb0fa
+  - key: ScaleControlPrefab
+    guid: fac603b7783b45e4cbca3e3030f66525
   - key: ViewSystemPrefab
     guid: d28d054e38fd7044c9540e102d305bad
   - key: ViewSystemPrefab_NoPhantomMenu
@@ -45,6 +47,10 @@ MonoBehaviour:
     guid: 1f6f215d9f208eb47b5a32387a0b3cb3
   - key: LocalSubMenu_NoPhantomMenu_jp
     guid: 993e5a0f5c4dc604b80d349567487f72
+  - key: LocalScaleControlMenu_zh
+    guid: bb233cf595da6314eb63744f56059661
+  - key: LocalScaleControlMenu_jp
+    guid: c211334d76b2bc04b84bd0f48d88fa63
   - key: LocalViewSysMenu_zh
     guid: 60562f143038cf94cb0528e69f1743ed
   - key: LocalViewSysMenu_jp

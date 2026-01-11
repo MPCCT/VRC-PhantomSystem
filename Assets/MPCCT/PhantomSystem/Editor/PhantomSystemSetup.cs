@@ -24,6 +24,7 @@ namespace MPCCT
         private VRCAvatarDescriptor PhantomAvatar;
         private bool IsRenameParameters;
         private bool IsRemoveViewSystem;
+        private bool IsRemoveScaleControl;
         private bool IsRemovePhantomMenu;
         private bool IsRemovePhantomAvatarMA;
         private bool IsRemoveOriginalAnimator;
@@ -57,6 +58,7 @@ namespace MPCCT
             "MAPrefab_NoPhantomMenu",
             "ReferenceAnimation",
             "PhantomMenu",
+            "ScaleControlPrefab",
             "ViewSystemPrefab",
             "ViewSystemPrefab_NoPhantomMenu",
             "GrabPrefab",
@@ -68,6 +70,8 @@ namespace MPCCT
             "LocalMainMenu_NoPhantomMenu_jp",
             "LocalSubMenu_NoPhantomMenu_zh",
             "LocalSubMenu_NoPhantomMenu_jp",
+            "LocalScaleControlMenu_zh",
+            "LocalScaleControlMenu_jp",
             "LocalViewSysMenu_zh",
             "LocalViewSysMenu_jp"
         };
@@ -79,6 +83,7 @@ namespace MPCCT
         private static string MAPrefabPath_NoPhantomMenu => ResolveAssetPath("MAPrefab_NoPhantomMenu");
         private static string ReferenceAnimationPath => ResolveAssetPath("ReferenceAnimation");
         private static string PhantomMenuPath => ResolveAssetPath("PhantomMenu");
+        private static string ScaleControlPrefabPath => ResolveAssetPath("ScaleControlPrefab");
         private static string ViewSystemPrefabPath => ResolveAssetPath("ViewSystemPrefab");
         private static string ViewSystemPrefabPath_NoPhantomMenu => ResolveAssetPath("ViewSystemPrefab_NoPhantomMenu");
         private static string GrabPrefabPath => ResolveAssetPath("GrabPrefab");
@@ -93,6 +98,8 @@ namespace MPCCT
         private static string LocalSubMenu_NoPhantomMenuPath_zh => ResolveAssetPath("LocalSubMenu_NoPhantomMenu_zh");
         private static string LocalSubMenu_NoPhantomMenuPath_jp => ResolveAssetPath("LocalSubMenu_NoPhantomMenu_jp");
 
+        private static string LocalScaleControlMenuPath_zh => ResolveAssetPath("LocalScaleControlMenu_zh");
+        private static string LocalScaleControlMenuPath_jp => ResolveAssetPath("LocalScaleControlMenu_jp");
         private static string LocalViewSysMenuPath_zh => ResolveAssetPath("LocalViewSysMenu_zh");
         private static string LocalViewSysMenuPath_jp => ResolveAssetPath("LocalViewSysMenu_jp");
 
@@ -156,10 +163,16 @@ namespace MPCCT
         {
             public GameObject PhantomSystem;
             public GameObject PhantomAvatarRoot;
+
             public Animator PhantomAnimator;
             public Animator BaseAnimator;
+
             public Transform PhantomArmature;
             public Transform BaseArmature;
+
+            public GameObject PhantomMA;
+
+            public Transform SpawnPosition;
             public Dictionary<HumanBodyBones, string> PhantomBonePaths = new Dictionary<HumanBodyBones, string>();
             public List<ModularAvatarParameters> ExceptionParameters = new List<ModularAvatarParameters>();
             public string PhantomAmaturePath;
@@ -268,7 +281,7 @@ namespace MPCCT
         private void OnGUI()
         {
             // Title
-            EditorGUILayout.LabelField("PhantomSystem v1.0.0 Made By MPCCT");
+            EditorGUILayout.LabelField("PhantomSystem v1.1.0 Made By MPCCT");
 
             // Language selection
             string[] localeOptions = new[] { "English", "中文", "日本語" };
@@ -282,6 +295,7 @@ namespace MPCCT
             // Main fields
             BaseAvatar = EditorGUILayout.ObjectField(T("BaseAvatar"), BaseAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
             PhantomAvatar = EditorGUILayout.ObjectField(T("PhantomAvatar"), PhantomAvatar, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
+
             IsRenameParameters = EditorGUILayout.ToggleLeft(T("RenameParameters"), IsRenameParameters);
 
             // MA Parameters Exceptions list
@@ -327,6 +341,7 @@ namespace MPCCT
             }
 
             IsRemoveViewSystem = EditorGUILayout.ToggleLeft(T("RemoveViewSystem"), IsRemoveViewSystem);
+            IsRemoveScaleControl = EditorGUILayout.ToggleLeft(T("RemoveScaleControl"), IsRemoveScaleControl);
 
             // Advanced Settings 
             showAdvanced = EditorGUILayout.Foldout(showAdvanced, T("AdvancedSettings"), true);
@@ -516,6 +531,7 @@ namespace MPCCT
             SetupGrabRoot(ctx, anim);
             anim.Save(GeneratedAnimationPath, ReferenceAnimationPath);
             AddMAPrefab(ctx, anim);
+            if (!IsRemoveScaleControl) SetupScaleControl(ctx);
             if (!IsRemoveViewSystem) SetupViewSystem(ctx);
             if (!IsRemoveOriginalAnimator) MergeOriginalAnimator(ctx);
             if (IsChangePBImmobileType) ChangePhysBoneImmobileType(ctx);
@@ -569,6 +585,11 @@ namespace MPCCT
 
             ctx.PhantomAnimator = ctx.PhantomAvatarRoot.GetComponent<Animator>();
             ctx.BaseAnimator = BaseAvatar.GetComponent<Animator>();
+
+            // Add PhantomSpawnPosition
+            GameObject spawnPosition = new GameObject("PhantomSpawnPosition");
+            spawnPosition.transform.parent = ctx.PhantomSystem.transform;
+            ctx.SpawnPosition = spawnPosition.transform;
         }
         private void CalMAMergeAnimatorPriority(SetupContext ctx)
         {
@@ -584,6 +605,8 @@ namespace MPCCT
         {
             ctx.PhantomArmature = ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips).parent;
             ctx.BaseArmature = ctx.BaseAnimator.GetBoneTransform(HumanBodyBones.Hips).parent;
+            ctx.SpawnPosition.position = ctx.BaseArmature.position;
+            ctx.SpawnPosition.rotation = ctx.BaseArmature.rotation;
 
             GameObject BaseAvatarPosition = new GameObject("BaseAvatarPosition");
             BaseAvatarPosition.transform.parent = ctx.PhantomSystem.transform;
@@ -602,7 +625,7 @@ namespace MPCCT
             {
                 new VRCConstraintSource
                 {
-                    SourceTransform = ctx.BaseArmature,
+                    SourceTransform = ctx.SpawnPosition,
                     Weight = 1f
                 }
             };
@@ -617,7 +640,7 @@ namespace MPCCT
             {
                 new VRCConstraintSource
                 {
-                    SourceTransform = ctx.BaseArmature,
+                    SourceTransform = ctx.SpawnPosition,
                     Weight = 1f
                 }
             };
@@ -631,7 +654,7 @@ namespace MPCCT
             {
                 new VRCConstraintSource
                 {
-                    SourceTransform = ctx.BaseArmature,
+                    SourceTransform = ctx.SpawnPosition,
                     Weight = 1f
                 },
                 new VRCConstraintSource
@@ -1084,6 +1107,7 @@ namespace MPCCT
             GameObject MAPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(IsRemovePhantomMenu ? MAPrefabPath_NoPhantomMenu : MAPrefabPath);
             GameObject MAPrefabInstance = (GameObject)PrefabUtility.InstantiatePrefab(MAPrefab, ctx.PhantomSystem.transform);
             MAPrefabInstance.name = "PhantomMA";
+            ctx.PhantomMA = MAPrefabInstance;
 
             var MAPrefabAnimator = MAPrefabInstance.GetComponent<ModularAvatarMergeAnimator>();
             MAPrefabAnimator.animator = anim.PhantomController;
@@ -1106,6 +1130,39 @@ namespace MPCCT
                     {
                         var MainMenu = IsRemovePhantomMenu ? AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalMainMenu_NoPhantomMenuPath_jp) : AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalMainMenuPath_jp);
                         MAPrefabInstance.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = MainMenu;
+                        break;
+                    }
+            }
+        }
+
+        private void SetupScaleControl(SetupContext ctx)
+        {
+            GameObject ScaleControlPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(ScaleControlPrefabPath);
+            GameObject ScaleControl = (GameObject)PrefabUtility.InstantiatePrefab(ScaleControlPrefab, ctx.PhantomMA.transform);
+
+            // Localize Menu
+            switch (PhantomSystemLocalizationData.currentLocale)
+            {
+                case PhantomSystemLocalizationData.Locale.Chinese:
+                    {
+                        VRCExpressionsMenu ScaleMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalScaleControlMenuPath_zh);
+                        ScaleControl.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = ScaleMenu;
+                        ScaleControl.GetComponent<ModularAvatarMenuInstaller>().installTargetMenu = IsRemovePhantomMenu ?
+                            AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalSubMenu_NoPhantomMenuPath_zh) :
+                            AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalSubMenuPath_zh);
+                        break;
+                    }
+                case PhantomSystemLocalizationData.Locale.English:
+                    {
+                        break;
+                    }
+                case PhantomSystemLocalizationData.Locale.Japanese:
+                    {
+                        VRCExpressionsMenu ScaleMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalScaleControlMenuPath_jp);
+                        ScaleControl.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = ScaleMenu;
+                        ScaleControl.GetComponent<ModularAvatarMenuInstaller>().installTargetMenu = IsRemovePhantomMenu ?
+                            AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalSubMenu_NoPhantomMenuPath_jp) :
+                            AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalSubMenuPath_jp);
                         break;
                     }
             }

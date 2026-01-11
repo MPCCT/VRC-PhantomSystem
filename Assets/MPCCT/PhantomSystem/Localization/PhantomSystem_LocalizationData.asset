@@ -49,6 +49,10 @@ MonoBehaviour:
     en: Remove phantom view window
     zh: "\u79FB\u9664\u5206\u8EAB\u89C6\u7A97"
     jp: "\u30D5\u30A1\u30F3\u30C8\u30E0\u306E\u8996\u754C\u30A6\u30A3\u30F3\u30C9\u30A6\u3092\u524A\u9664"
+  - key: RemoveScaleControl
+    en: Remove Scale Control
+    zh: "\u79FB\u9664\u5206\u8EAB\u5927\u5C0F\u63A7\u5236"
+    jp: "\u30D5\u30A1\u30F3\u30C8\u30E0\u306E\u30B9\u30B1\u30FC\u30EB\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u3092\u524A\u9664"
   - key: AdvancedSettings
     en: Advanced Settings
     zh: "\u9AD8\u7EA7\u8BBE\u7F6E"
