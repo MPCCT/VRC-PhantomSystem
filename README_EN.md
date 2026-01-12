@@ -8,6 +8,7 @@ PhantomSystem is a tool designed to easily add a "Phantom Avatar" to your VRChat
 - **Multiple Phantom Controls**: Control whether the phantom stays in place or moves with you after spawning. You can also pick up and move the phantom manually. The "Freeze" option allows the phantom to lock into its current pose at any time.
 - **Phantom Expression Menu**: An independent expression menu for the phantom, allowing it to change clothes or toggle minor features.
 - **[Modular Avatar](https://github.com/bdunderscore/modular-avatar) Compatible**: You can freely add items using MA components to the phantom model.
+- **Phantom Scale Control**: Real-time control of phantom size, toggle phantom mirror options, etc.
 - **Phantom View**: Open a screen that displays the phantom's perspective, allowing you to monitor its surroundings.
 
 ## 📦 Dependencies
