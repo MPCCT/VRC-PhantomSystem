@@ -750,6 +750,8 @@ namespace MPCCT
             // PositionLockOn: PahntomSystem constraint set to 1st source
             anim.PositionLockOn.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "Sources.source0.Weight", AnimationCurve.Constant(0, 0, 1));
             anim.PositionLockOn.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "Sources.source1.Weight", AnimationCurve.Constant(0, 0, 0));
+            // PositionLockOn: Armature Constraint solve in local space
+            anim.PositionLockOn.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "SolveInLocalSpace", AnimationCurve.Constant(0, 0, 1));
 
             // PositionLockOff: BaseAvatarPosition constraint freeze to world
             anim.PositionLockOff.SetCurve(GetRelativePath(BaseAvatarPosition.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "FreezeToWorld", AnimationCurve.Constant(0, 0, 1));
@@ -758,7 +760,8 @@ namespace MPCCT
             // PositionLockOff: PahntomSystem constraint set to 1st source
             anim.PositionLockOff.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "Sources.source0.Weight", AnimationCurve.Constant(0, 0, 1));
             anim.PositionLockOff.SetCurve(GetRelativePath(ctx.PhantomAvatarRoot.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "Sources.source1.Weight", AnimationCurve.Constant(0, 0, 0));
-
+            // PositionLockOff: Armature Constraint solve in local space
+            anim.PositionLockOff.SetCurve(GetRelativePath(ctx.PhantomArmature, BaseAvatar.transform), typeof(VRCParentConstraint), "SolveInLocalSpace", AnimationCurve.Constant(0, 0, 1));
 
             // PositionLockPrepare: create curves for keyframes
             float dt = 1.0f / 60.0f;
