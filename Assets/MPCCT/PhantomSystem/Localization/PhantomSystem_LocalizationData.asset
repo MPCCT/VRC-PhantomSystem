@@ -85,6 +85,10 @@ MonoBehaviour:
     en: Setup!
     zh: "\u5F00\u59CB\u914D\u7F6E\uFF01"
     jp: "\u30BB\u30C3\u30C8\u30A2\u30C3\u30D7\u958B\u59CB\uFF01"
+  - key: AdjustSpawnPosition
+    en: Adjust Spawn Position
+    zh: "\u8C03\u6574\u5206\u8EAB\u751F\u6210\u4F4D\u7F6E"
+    jp: "\u30D5\u30A1\u30F3\u30C8\u30E0\u306E\u751F\u6210\u4F4D\u7F6E\u3092\u8ABF\u6574"
   - key: SuccessTitle
     en: Success
     zh: "\u6210\u529F"

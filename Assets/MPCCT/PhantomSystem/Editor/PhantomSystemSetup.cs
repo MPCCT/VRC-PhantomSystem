@@ -414,6 +414,27 @@ namespace MPCCT
                 System.GC.Collect();
             }
             EditorGUI.EndDisabledGroup();
+
+            var SpawnPosition = FindSpawnPositionIfAlreadySetup(BaseAvatar);
+            if (SpawnPosition != null)
+            {
+                // Add a Botton that will select PhantomSpawnPosition in scene
+                if (GUILayout.Button(T("AdjustSpawnPosition")))
+                {
+                    // Select and ping the spawn object in the hierarchy
+                    Selection.activeGameObject = SpawnPosition.gameObject;
+                    EditorGUIUtility.PingObject(SpawnPosition.gameObject);
+
+                    // Focus scene view and frame selection if possible
+                    FocusWindowIfItsOpen<SceneView>();
+                    var sv = SceneView.lastActiveSceneView;
+                    if (sv != null)
+                    {
+                        sv.FrameSelected();
+                    }
+                }
+
+            }
         }
 
         private List<string> ValidateSetup()
@@ -502,6 +523,22 @@ namespace MPCCT
                 }
             }
             return invalidComponents;
+        }
+
+        private Transform FindSpawnPositionIfAlreadySetup(VRCAvatarDescriptor avatar)
+        {
+            if (avatar == null) return null;
+            var phantomSystem = avatar.transform.Find("PhantomSystem");
+            if (phantomSystem == null) return null;
+            for (int i = 0;i< phantomSystem.childCount; i++)
+            {
+                var child = phantomSystem.GetChild(i);
+                if (child.name == "PhantomSpawnPosition")
+                {
+                    return child;
+                }
+            }
+            return null;
         }
         #endregion
 
@@ -1139,6 +1176,9 @@ namespace MPCCT
         {
             GameObject ScaleControlPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(ScaleControlPrefabPath);
             GameObject ScaleControl = (GameObject)PrefabUtility.InstantiatePrefab(ScaleControlPrefab, ctx.PhantomMA.transform);
+
+            var ScaleControlAnimator = ScaleControl.GetComponent<ModularAvatarMergeAnimator>();
+            ScaleControlAnimator.layerPriority = ctx.PhantomAvatarAnimatorMaxPriority + ctx.BaseAvatarAnimatorMaxPriority + 4;
 
             // Localize Menu
             switch (PhantomSystemLocalizationData.currentLocale)
