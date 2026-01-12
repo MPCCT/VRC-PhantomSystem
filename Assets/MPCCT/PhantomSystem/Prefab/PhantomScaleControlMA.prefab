@@ -102,4 +102,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   menuToAppend: {fileID: 11400000, guid: abc5f2d69c113f240bfc4b3bcee58bfd, type: 2}
-  installTargetMenu: {fileID: 11400000, guid: 8d84c468ccbaccc4e941fce18f4ce2f0, type: 2}
+  installTargetMenu: {fileID: 11400000, guid: ef8155e24ed052a4296859fd9240bc6a, type: 2}

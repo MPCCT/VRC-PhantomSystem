@@ -31,18 +31,26 @@ MonoBehaviour:
     guid: 0e4e0ba589c7aa540b09c935d8a2562b
   - key: GrabPrefab
     guid: 7b29f1c9881b85745bda0fff1baf7133
+  - key: MainMenu
+    guid: ebf1f79c6e391ab4a8415b4a84f14b12
   - key: LocalMainMenu_zh
     guid: 03bedc05f65d97c48b98697d9d38c121
   - key: LocalMainMenu_jp
     guid: 71fd594aba43cde43a58817341521b1f
+  - key: SubMenu
+    guid: ef8155e24ed052a4296859fd9240bc6a
   - key: LocalSubMenu_zh
     guid: 8d84c468ccbaccc4e941fce18f4ce2f0
   - key: LocalSubMenu_jp
     guid: d00d4284aec2dbc49b8d2f3703558dc7
+  - key: MainMenu_NoPhantomMenu
+    guid: 6f7d6c0a4b7badd48b1e7fb4bdb70d2a
   - key: LocalMainMenu_NoPhantomMenu_zh
     guid: eeb6d6ad5a447ec4aa201c77526db1f6
   - key: LocalMainMenu_NoPhantomMenu_jp
     guid: 16151383ba1700140b4f08dda4abe2ca
+  - key: SubMenu_NoPhantomMenu
+    guid: 6a140fec24536534ba267c3c3ef2dd2b
   - key: LocalSubMenu_NoPhantomMenu_zh
     guid: 1f6f215d9f208eb47b5a32387a0b3cb3
   - key: LocalSubMenu_NoPhantomMenu_jp

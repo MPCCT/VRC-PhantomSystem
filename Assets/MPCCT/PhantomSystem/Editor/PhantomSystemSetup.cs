@@ -62,12 +62,16 @@ namespace MPCCT
             "ViewSystemPrefab",
             "ViewSystemPrefab_NoPhantomMenu",
             "GrabPrefab",
+            "MainMenu",
             "LocalMainMenu_zh",
             "LocalMainMenu_jp",
+            "SubMenu",
             "LocalSubMenu_zh",
             "LocalSubMenu_jp",
+            "MainMenu_NoPhantomMenu",
             "LocalMainMenu_NoPhantomMenu_zh",
             "LocalMainMenu_NoPhantomMenu_jp",
+            "SubMenu_NoPhantomMenu",
             "LocalSubMenu_NoPhantomMenu_zh",
             "LocalSubMenu_NoPhantomMenu_jp",
             "LocalScaleControlMenu_zh",
@@ -88,13 +92,17 @@ namespace MPCCT
         private static string ViewSystemPrefabPath_NoPhantomMenu => ResolveAssetPath("ViewSystemPrefab_NoPhantomMenu");
         private static string GrabPrefabPath => ResolveAssetPath("GrabPrefab");
 
+        private static string MainMenuPath => ResolveAssetPath("MainMenu");
         private static string LocalMainMenuPath_zh => ResolveAssetPath("LocalMainMenu_zh");
         private static string LocalMainMenuPath_jp => ResolveAssetPath("LocalMainMenu_jp");
+        private static string SubMenuPath => ResolveAssetPath("SubMenu");
         private static string LocalSubMenuPath_zh => ResolveAssetPath("LocalSubMenu_zh");
         private static string LocalSubMenuPath_jp => ResolveAssetPath("LocalSubMenu_jp");
 
+        private static string MainMenu_NoPhantomMenuPath => ResolveAssetPath("MainMenu_NoPhantomMenu");
         private static string LocalMainMenu_NoPhantomMenuPath_zh => ResolveAssetPath("LocalMainMenu_NoPhantomMenu_zh");
         private static string LocalMainMenu_NoPhantomMenuPath_jp => ResolveAssetPath("LocalMainMenu_NoPhantomMenu_jp");
+        private static string SubMenu_NoPhantomMenuPath => ResolveAssetPath("SubMenu_NoPhantomMenu");
         private static string LocalSubMenu_NoPhantomMenuPath_zh => ResolveAssetPath("LocalSubMenu_NoPhantomMenu_zh");
         private static string LocalSubMenu_NoPhantomMenuPath_jp => ResolveAssetPath("LocalSubMenu_NoPhantomMenu_jp");
 
@@ -1158,18 +1166,23 @@ namespace MPCCT
             {
                 case PhantomSystemLocalizationData.Locale.Chinese:
                     {
-                        var MainMenu = IsRemovePhantomMenu ? AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalMainMenu_NoPhantomMenuPath_zh) : AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalMainMenuPath_zh);
-                        MAPrefabInstance.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = MainMenu;
+                        MAPrefabInstance.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = IsRemovePhantomMenu ? 
+                            AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalMainMenu_NoPhantomMenuPath_zh) : 
+                            AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalMainMenuPath_zh); ;
                         break;
                     }
                 case PhantomSystemLocalizationData.Locale.English:
                     {
+                        MAPrefabInstance.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = IsRemovePhantomMenu ?
+                            AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(MainMenu_NoPhantomMenuPath) :
+                            AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(MainMenuPath); ;
                         break;
                     }
                 case PhantomSystemLocalizationData.Locale.Japanese:
                     {
-                        var MainMenu = IsRemovePhantomMenu ? AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalMainMenu_NoPhantomMenuPath_jp) : AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalMainMenuPath_jp);
-                        MAPrefabInstance.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = MainMenu;
+                        MAPrefabInstance.GetComponent<ModularAvatarMenuInstaller>().menuToAppend = IsRemovePhantomMenu ? 
+                            AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalMainMenu_NoPhantomMenuPath_jp) : 
+                            AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(LocalMainMenuPath_jp); ;
                         break;
                     }
             }
@@ -1197,6 +1210,9 @@ namespace MPCCT
                     }
                 case PhantomSystemLocalizationData.Locale.English:
                     {
+                        ScaleControl.GetComponent<ModularAvatarMenuInstaller>().installTargetMenu = IsRemovePhantomMenu ?
+                            AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(SubMenu_NoPhantomMenuPath) :
+                            AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(SubMenuPath);
                         break;
                     }
                 case PhantomSystemLocalizationData.Locale.Japanese:
@@ -1248,6 +1264,9 @@ namespace MPCCT
                     }
                 case PhantomSystemLocalizationData.Locale.English:
                     {
+                        ViewSystem.GetComponent<ModularAvatarMenuInstaller>().installTargetMenu = IsRemovePhantomMenu ?
+                            AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(SubMenu_NoPhantomMenuPath) :
+                            AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(SubMenuPath);
                         break;
                     }
                 case PhantomSystemLocalizationData.Locale.Japanese:
