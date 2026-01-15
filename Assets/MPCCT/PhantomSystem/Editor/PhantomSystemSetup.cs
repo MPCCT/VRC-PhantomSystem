@@ -514,6 +514,7 @@ namespace MPCCT
             var allComponents = avatar.GetComponentsInChildren<Component>(true);
             foreach(var component in  allComponents)
             {
+                if (component == null) continue; // skip missing scripts
                 // Check if component is on the arvatar root
                 if (component.gameObject != avatar.gameObject)
                 {
