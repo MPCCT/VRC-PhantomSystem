@@ -671,7 +671,7 @@ namespace MPCCT
             {
                 new VRCConstraintSource
                 {
-                    SourceTransform = ctx.SpawnPosition,
+                    SourceTransform = ctx.BaseArmature,
                     Weight = 1f
                 }
             };
@@ -686,7 +686,7 @@ namespace MPCCT
             {
                 new VRCConstraintSource
                 {
-                    SourceTransform = ctx.SpawnPosition,
+                    SourceTransform = ctx.BaseArmature,
                     Weight = 1f
                 }
             };
@@ -1239,10 +1239,10 @@ namespace MPCCT
 
             GameObject BaseAvatarViewPoint = ViewSystem.transform.Find("BaseAvatarViewPoint").gameObject;
             BaseAvatarViewPoint.transform.position = BaseAvatar.ViewPosition;
-            BaseAvatarViewPoint.transform.rotation = ctx.BaseAnimator.GetBoneTransform(HumanBodyBones.Head).rotation;
+            BaseAvatarViewPoint.transform.rotation = BaseAvatar.transform.rotation;
             GameObject PhantomAvatarViewPoint = ViewSystem.transform.Find("PhantomAvatarViewPoint").gameObject;
             PhantomAvatarViewPoint.transform.position = PhantomAvatar.ViewPosition;
-            PhantomAvatarViewPoint.transform.rotation = ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Head).rotation;
+            PhantomAvatarViewPoint.transform.rotation = PhantomAvatar.transform.rotation;
 
             ModularAvatarBoneProxy PhantomAvatarViewPointMA = PhantomAvatarViewPoint.GetComponent<ModularAvatarBoneProxy>();
             PhantomAvatarViewPointMA.subPath = ctx.PhantomBonePaths[HumanBodyBones.Head];
@@ -1363,6 +1363,8 @@ namespace MPCCT
             anim.GrabOn.SetCurve(GetRelativePath(ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform), typeof(VRCPositionConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
             // GrabOn: Disable GrabRoot Constraint
             anim.GrabOn.SetCurve(GetRelativePath(GrabRootConstraint.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
+            // GrabOn: Enable PhysBone
+            anim.GrabOn.SetCurve(GetRelativePath(GrabRoot.transform, BaseAvatar.transform), typeof(VRCPhysBone), "m_Enabled", AnimationCurve.Constant(0, 0, 1));
 
             // GrabOff: Enable Hips Parent Constraint
             anim.GrabOff.SetCurve(GetRelativePath(ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
@@ -1370,6 +1372,8 @@ namespace MPCCT
             anim.GrabOff.SetCurve(GetRelativePath(ctx.PhantomAnimator.GetBoneTransform(HumanBodyBones.Hips), BaseAvatar.transform), typeof(VRCPositionConstraint), "IsActive", AnimationCurve.Constant(0, 0, 0));
             // GrabOff: Enable GrabRoot Constraint
             anim.GrabOff.SetCurve(GetRelativePath(GrabRootConstraint.transform, BaseAvatar.transform), typeof(VRCParentConstraint), "IsActive", AnimationCurve.Constant(0, 0, 1));
+            // GrabOff: Enable PhysBone
+            anim.GrabOff.SetCurve(GetRelativePath(GrabRoot.transform, BaseAvatar.transform), typeof(VRCPhysBone), "m_Enabled", AnimationCurve.Constant(0, 0, 1));
         }
 
         private void ChangePhysBoneImmobileType(SetupContext ctx)

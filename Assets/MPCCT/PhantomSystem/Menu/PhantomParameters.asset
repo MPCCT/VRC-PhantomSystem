@@ -29,3 +29,8 @@ MonoBehaviour:
     saved: 0
     defaultValue: 1
     networkSynced: 1
+  - name: PhantomGrabOn
+    valueType: 2
+    saved: 0
+    defaultValue: 1
+    networkSynced: 1

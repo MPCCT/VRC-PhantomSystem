@@ -44,6 +44,16 @@ MonoBehaviour:
     subMenu: {fileID: 11400000, guid: f7baeed80f640f847a0650eb267cb0fa, type: 2}
     subParameters: []
     labels: []
+  - name: "\u63B4\u307F\u5224\u5B9A"
+    icon: {fileID: 0}
+    type: 102
+    parameter:
+      name: PhantomGrabOn
+    value: 1
+    style: 0
+    subMenu: {fileID: 11400000, guid: f7baeed80f640f847a0650eb267cb0fa, type: 2}
+    subParameters: []
+    labels: []
   - name: "\u30D5\u30A1\u30F3\u30C8\u30E0\u30E1\u30CB\u30E5\u30FC"
     icon: {fileID: 0}
     type: 103
